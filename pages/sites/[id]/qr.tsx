@@ -2,6 +2,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { requireAuth } from '../../../lib/api';
 import AuthorizedImage from '../../../components/AuthorizedImage';
+import { API_URL } from '../../../lib/api';
 
 export default function SiteQR() {
   const router = useRouter();
@@ -23,10 +24,10 @@ export default function SiteQR() {
         <button onClick={()=>window.print()}>Imprimer</button>
         <button onClick={async ()=>{
           const token = localStorage.getItem('token') || '';
-          await fetch(`/api/sites/${id}/qr/rotate`, { // proxy via Next ? Ici on va direct API => ajuste si besoin
-            method:'POST',
-            headers: { Authorization: `Bearer ${token}` }
-          });
+        await fetch(`${API_URL}/api/sites/${id}/qr/rotate`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token') || ''}` }
+            });
           location.reload();
         }}>Régénérer</button>
       </div>
