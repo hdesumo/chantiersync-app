@@ -10,28 +10,14 @@ import {
   type Site,
   type ListSitesParams,
 } from '@/lib/api';
-import AuthorizedImage from '@/components/AuthorizedImage';// app/sites/page.tsx
-'use client';
-
-import { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/context/AuthProvider';
-import {
-  listSites,
-  createSite,
-  siteQrPngUrl,
-  type Site,
-  type ListSitesParams,
-} from '@/lib/api';
 import AuthorizedImage from '@/components/AuthorizedImage';
 
 type SortBy = NonNullable<ListSitesParams['sortBy']>;
 type SortDir = NonNullable<ListSitesParams['sortDir']>;
 type CreateState = { name: string; code: string; location: string };
 
-// Feature flag pour la création
 const ENABLE_CREATE = process.env.NEXT_PUBLIC_ENABLE_CREATE_SITES === '1';
 
-// petit hook debounce pour la recherche
 function useDebounced<T>(value: T, delay = 300) {
   const [v, setV] = useState(value);
   useEffect(() => {
@@ -44,7 +30,6 @@ function useDebounced<T>(value: T, delay = 300) {
 export default function SitesPage() {
   const { token } = useAuth();
 
-  // filtres/tri/pagination
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
   const [from, setFrom] = useState('');
@@ -56,19 +41,16 @@ export default function SitesPage() {
 
   const qDebounced = useDebounced(q, 300);
 
-  // data
   const [rows, setRows] = useState<Site[]>([]);
   const [count, setCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  // création
   const [openCreate, setOpenCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState<string | null>(null);
   const [form, setForm] = useState<CreateState>({ name: '', code: '', location: '' });
 
-  // QR modal
   const [qrId, setQrId] = useState<string | null>(null);
 
   const page = useMemo(() => Math.floor(offset / limit) + 1, [offset, limit]);
@@ -77,11 +59,9 @@ export default function SitesPage() {
     [count, limit]
   );
 
-  // fetch serveur
   useEffect(() => {
     if (!token) return;
     let ignore = false;
-
     (async () => {
       setLoading(true);
       setErr(null);
@@ -106,29 +86,18 @@ export default function SitesPage() {
         if (!ignore) setLoading(false);
       }
     })();
-
     return () => { ignore = true; };
   }, [token, qDebounced, status, from, to, sortBy, sortDir, limit, offset]);
 
   function toggleSort(col: SortBy) {
-    if (sortBy === col) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(col);
-      setSortDir('asc');
-    }
+    if (sortBy === col) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
     setOffset(0);
   }
 
   function resetFilters() {
-    setQ('');
-    setStatus('');
-    setFrom('');
-    setTo('');
-    setSortBy('createdAt');
-    setSortDir('desc');
-    setLimit(10);
-    setOffset(0);
+    setQ(''); setStatus(''); setFrom(''); setTo('');
+    setSortBy('createdAt'); setSortDir('desc'); setLimit(10); setOffset(0);
   }
 
   function gotoPage(p: number) {
@@ -153,7 +122,6 @@ export default function SitesPage() {
         await createSite(token, payload);
         setOpenCreate(false);
         setForm({ name: '', code: '', location: '' });
-        // recharger la première page pour voir le nouvel item
         setOffset(0);
         const res = await listSites(token, {
           q: qDebounced || undefined,
@@ -179,9 +147,7 @@ export default function SitesPage() {
     return (
       <div className="p-6">
         <h1 className="text-xl font-semibold mb-2">Sites</h1>
-        <p className="text-sm text-gray-600">
-          Non authentifié – <a className="underline" href="/login">connectez-vous</a>.
-        </p>
+        <p className="text-sm text-gray-600">Non authentifié – <a className="underline" href="/login">connectez-vous</a>.</p>
       </div>
     );
   }
@@ -297,7 +263,7 @@ export default function SitesPage() {
                     >
                       QR
                     </button>
-                    {/* TODO: bouton Éditer, Archiver, etc. */}
+                    {/* TODO: Éditer/Archiver */}
                   </div>
                 </td>
               </tr>
@@ -308,9 +274,7 @@ export default function SitesPage() {
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <div className="text-sm text-gray-600">
-          Page {page}/{totalPages}
-        </div>
+        <div className="text-sm text-gray-600">Page {page}/{totalPages}</div>
         <div className="flex gap-2">
           <button
             disabled={page <= 1}
@@ -374,18 +338,10 @@ export default function SitesPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setOpenCreate(false)}
-                  className="rounded-lg border px-3 py-2"
-                >
+                <button type="button" onClick={() => setOpenCreate(false)} className="rounded-lg border px-3 py-2">
                   Annuler
                 </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="rounded-lg bg-black text-white px-3 py-2 disabled:opacity-50"
-                >
+                <button type="submit" disabled={creating} className="rounded-lg bg-black text-white px-3 py-2 disabled:opacity-50">
                   {creating ? 'Création…' : 'Créer'}
                 </button>
               </div>
@@ -403,9 +359,8 @@ export default function SitesPage() {
               <button onClick={() => setQrId(null)} className="text-gray-500 hover:text-black">✕</button>
             </div>
             <div className="flex items-center justify-center">
-              {/* Utilise AuthorizedImage pour injecter Authorization: Bearer */}
               <AuthorizedImage
-                src={siteQrPngUrl(qrId, 512).replace(/^https?:\/\/[^/]+/, '')} // chemin relatif pour AuthorizedImage
+                src={siteQrPngUrl(qrId, 512).replace(/^https?:\/\/[^/]+/, '')}
                 token={token}
                 alt="QR code"
                 width={256}
@@ -448,3 +403,4 @@ function formatDate(iso?: string | null) {
     return iso as string;
   }
 }
+
