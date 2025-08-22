@@ -2,7 +2,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { apiFetch, login as apiLogin } from '@/lib/api';
+import { login as apiLogin } from '@/lib/api';
 
 type AuthCtx = {
   token: string | null;
@@ -16,7 +16,6 @@ const Ctx = createContext<AuthCtx | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, _setToken] = useState<string | null>(null);
 
-  // charge depuis cookie/localStorage côté client
   useEffect(() => {
     try {
       const saved = localStorage.getItem('cs_token');
@@ -29,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (t) localStorage.setItem('cs_token', t);
       else localStorage.removeItem('cs_token');
-      // cookie simple pour fetch image <img>
+      // cookie pour autoriser <img src=...> avec le token
       document.cookie = t
         ? `cs_token=${t}; Path=/; Max-Age=1209600; Secure; SameSite=Lax`
         : `cs_token=; Path=/; Max-Age=0; Secure; SameSite=Lax`;
@@ -54,6 +53,6 @@ export function useAuth() {
   return ctx;
 }
 
-// ✅ export par défaut aussi (pour compat)
+// export par défaut (compat avec import default)
 export default AuthProvider;
 
