@@ -1,53 +1,37 @@
 // middleware.ts
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-const PUBLIC_PATHS = [
-  /^\/login(?:\/)?$/,
-  /^\/_next\/.*/i,
-  /^\/favicon\.ico$/i,
-  /^\/robots\.txt$/i,
-  /^\/sitemap\.xml$/i,
-  /^\/images\/.*/i,
-  /^\/icons\/.*/i,
-  /^\/assets\/.*/i,
-];
-
-function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.some((re) => re.test(pathname));
-}
+// Routes protégées par login
+const PROTECTED = [/^\/sites(?:\/.*)?$/, /^\/reports(?:\/.*)?$/];
 
 export function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const { pathname, search } = req.nextUrl;
   const token = req.cookies.get('cs_token')?.value || '';
 
-  // si déjà connecté et sur /login → redirige vers /sites
-  if (pathname.startsWith('/login')) {
-    if (token) {
-      const url = req.nextUrl.clone();
-      url.pathname = '/sites';
-      url.search = '';
-      return NextResponse.redirect(url);
-    }
-    return NextResponse.next();
+  const isProtected = PROTECTED.some((re) => re.test(pathname));
+  const isLogin = pathname === '/login';
+
+  // Si route protégée et pas de token -> redirige vers /login?next=<path>
+  if (isProtected && !token) {
+    const url = new URL('/login', req.url);
+    url.searchParams.set('next', pathname + (search || ''));
+    return NextResponse.redirect(url);
   }
 
-  // ressources publiques : laissons passer
-  if (isPublicPath(pathname)) {
-    return NextResponse.next();
-  }
-
-  // sinon, pages protégées → exiger le token
-  if (!token) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/login';
-    url.search = `from=${encodeURIComponent(pathname)}`;
+  // Si déjà loggé et on va sur /login -> envoie vers /sites
+  if (isLogin && token) {
+    const url = new URL('/sites', req.url);
     return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
 }
 
+// Ignore les assets statiques pour éviter du travail inutile
 export const config = {
-  // exclut tous les fichiers statiques /api (si tu as des API routes locales)
-  matcher: ['/((?!_next/|.*\\..*|api/).*)'],
+  matcher: [
+    // tout sauf assets statiques et fichiers communs
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt)).*)',
+  ],
 };
