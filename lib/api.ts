@@ -1,9 +1,10 @@
 // lib/api.ts
-const API = process.env.NEXT_PUBLIC_API_BASE!;
-if (!API) {
-  // eslint-disable-next-line no-console
-  console.warn('NEXT_PUBLIC_API_BASE manquant dans .env');
-}
+const API =
+  process.env.NEXT_PUBLIC_API_BASE ||
+  process.env.NEXT_PUBLIC_API_URL || ''; // fallback si tu avais cette variable avant
+
+if (!API) console.warn('NEXT_PUBLIC_API_BASE manquant dans les env');
+export const API_URL = API; // ⬅️ alias rétro-compatibilité pour l’ancien code
 
 type FetchOpts = {
   method?: 'GET'|'POST'|'PUT'|'PATCH'|'DELETE';
@@ -46,8 +47,8 @@ export type Site = {
 export type ListSitesParams = {
   q?: string;
   status?: 'active'|'archived'|''|null;
-  from?: string; // ISO date (YYYY-MM-DD)
-  to?: string;   // ISO date (YYYY-MM-DD)
+  from?: string; // YYYY-MM-DD
+  to?: string;   // YYYY-MM-DD
   sortBy?: 'name'|'code'|'createdAt'|'updatedAt'|'status';
   sortDir?: 'asc'|'desc';
   limit?: number;
@@ -55,22 +56,15 @@ export type ListSitesParams = {
 };
 
 /* ===== Endpoints ===== */
-
-// Auth
 export async function login(email: string, password: string): Promise<{ token: string; user?: any }> {
   return request('/api/auth/login', { method: 'POST', body: { email, password } });
 }
 
-// Sites
 export async function listSites(
   token: string,
   params: ListSitesParams = {}
 ): Promise<{ count: number; rows: Site[]; limit: number; offset: number }> {
-  const {
-    q, status, from, to, sortBy, sortDir,
-    limit = 10, offset = 0,
-  } = params;
-
+  const { q, status, from, to, sortBy, sortDir, limit = 10, offset = 0 } = params;
   const qs = new URLSearchParams();
   if (q) qs.set('q', q);
   if (status) qs.set('status', status);
@@ -80,7 +74,6 @@ export async function listSites(
   if (sortDir) qs.set('sortDir', sortDir);
   qs.set('limit', String(limit));
   qs.set('offset', String(offset));
-
   return request(`/api/sites?${qs.toString()}`, { token });
 }
 
