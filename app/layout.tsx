@@ -1,7 +1,7 @@
 // app/layout.tsx
 import './globals.css';
 import type { Metadata } from 'next';
-import AuthProvider from '@/context/AuthProvider';
+import { AuthProvider } from '@/context/AuthProvider'; // <- import nommé
 
 export const metadata: Metadata = {
   title: 'Chantiersync Admin',
@@ -19,3 +19,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+
