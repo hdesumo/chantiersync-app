@@ -1,161 +1,98 @@
 // app/login/page.tsx
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
 
-type FormState = {
-  email: string;
-  password: string;
-  remember: boolean;
-  showPassword: boolean;
-};
-
-function validateEmail(email: string) {
-  // assez permissif mais utile
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+// Empêche Next d'essayer de pré-rendre /login côté build
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default function LoginPage() {
-  const { token, login } = useAuth();
   const router = useRouter();
-  const sp = useSearchParams();
-  const redirectTo = useMemo(() => sp.get('from') || '/sites', [sp]);
+  const { login } = useAuth();
 
-  const [state, setState] = useState<FormState>({
-    email: '',
-    password: '',
-    remember: true,
-    showPassword: false,
-  });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  // si déjà loggé → redirect
-  useEffect(() => {
-    if (token) router.replace(redirectTo);
-  }, [token, router, redirectTo]);
+  // Indicateur API (NEXT_PUBLIC_*)
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE || '';
 
-  const onSubmit = async (e: React.FormEvent) => {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-
-    // validations basiques
-    if (!validateEmail(state.email)) {
-      setError('Email invalide');
+    setErr(null);
+    if (!email || !password) {
+      setErr('Email et mot de passe requis.');
       return;
     }
-    if (!state.password || state.password.length < 3) {
-      setError('Mot de passe trop court');
-      return;
-    }
-
+    setLoading(true);
     try {
-      setSubmitting(true);
-      await login(state.email, state.password, state.remember ? 7 : 1);
-      router.replace(redirectTo);
-    } catch (err: any) {
-      // extraire un message lisible
-      const msg = String(err?.message || 'Échec de connexion');
-      // Certaines erreurs viennent sous forme "HTTP 401 Unauthorized – {...}"
-      if (/HTTP\s+\d+/.test(msg)) {
-        setError('Identifiants invalides ou accès refusé');
-      } else {
-        setError(msg);
-      }
+      await login(email, password, 7);
+      router.replace('/sites');
+    } catch (e: any) {
+      const msg = String(e?.message || 'Connexion impossible');
+      // Si l’API renvoie 404/502, on affiche un message clair
+      setErr(
+        msg.includes('404') ? 'Endpoint /api/auth/login introuvable.' :
+        msg.includes('502') ? 'API indisponible (502). Réessayez.' :
+        msg
+      );
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
-  };
-
-  const fillDemo = () => {
-    setState(s => ({ ...s, email: 'admin@demo.local', password: 'admin123' }));
-  };
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow p-6">
-        <div className="mb-6 text-center">
-          <h1 className="text-2xl font-semibold">Connexion</h1>
-          <p className="text-sm text-gray-500 mt-1">Espace d’administration Chantiersync</p>
-        </div>
+    <div className="min-h-[100dvh] flex items-center justify-center p-6">
+      <div className="w-full max-w-sm rounded-2xl border bg-white p-6 shadow-sm">
+        <h1 className="mb-1 text-xl font-semibold">Connexion</h1>
+        <p className="mb-4 text-xs text-gray-500">
+          API: <code>{API_BASE || '—'}</code>
+        </p>
 
-        {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            {error}
+        {err && (
+          <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {err}
           </div>
         )}
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label className="block text-sm font-medium">Email</label>
             <input
               type="email"
-              autoComplete="email"
+              autoComplete="username"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-              placeholder="vous@exemple.com"
-              value={state.email}
-              onChange={(e) => setState(s => ({ ...s, email: e.target.value }))}
+              placeholder="admin@demo.local"
+              required
             />
           </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700">Mot de passe</label>
-            <div className="mt-1 flex gap-2">
-              <input
-                type={state.showPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
-                placeholder="••••••••"
-                value={state.password}
-                onChange={(e) => setState(s => ({ ...s, password: e.target.value }))}
-              />
-              <button
-                type="button"
-                onClick={() => setState(s => ({ ...s, showPassword: !s.showPassword }))}
-                className="rounded-lg border px-3 text-sm"
-                aria-label={state.showPassword ? 'Masquer' : 'Afficher'}
-              >
-                {state.showPassword ? 'Cacher' : 'Afficher'}
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                className="h-4 w-4"
-                checked={state.remember}
-                onChange={(e) => setState(s => ({ ...s, remember: e.target.checked }))}
-              />
-              Se souvenir de moi
-            </label>
-
-            <button
-              type="button"
-              onClick={fillDemo}
-              className="text-sm text-gray-600 hover:text-gray-800 underline"
-            >
-              Remplir démo
-            </button>
+            <label className="block text-sm font-medium">Mot de passe</label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+              placeholder="admin123"
+              required
+            />
           </div>
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full rounded-lg bg-black text-white py-2.5 font-medium hover:opacity-95 disabled:opacity-50"
+            disabled={loading}
+            className="mt-2 w-full rounded-lg bg-black px-3 py-2 text-white disabled:opacity-50"
           >
-            {submitting ? 'Connexion…' : 'Se connecter'}
+            {loading ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>
-
-        <div className="mt-6 text-xs text-gray-500 text-center">
-          API: <code className="px-1 py-0.5 rounded bg-gray-100">
-            {process.env.NEXT_PUBLIC_API_BASE || 'NON DÉFINI'}
-          </code>
-        </div>
       </div>
     </div>
   );
