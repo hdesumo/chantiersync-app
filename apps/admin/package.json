@@ -1,0 +1,29 @@
+{
+  "name": "chantiersync-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "lucide-react": "^0.441.0",
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/node": "24.3.0",
+    "@types/react": "19.1.11",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.4.39",
+    "tailwindcss": "^3.4.10",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.4.5"
+  }
+}
