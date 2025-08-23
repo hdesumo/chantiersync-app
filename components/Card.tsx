@@ -1,13 +1,20 @@
-import React from "react";
+// components/Card.tsx
+import React from 'react';
 
+type Props = {
+  title?: string;
+  children: React.ReactNode;
+  footer?: React.ReactNode;
+  className?: string;
+};
 
-export default function Card({ children, className = "" }: React.PropsWithChildren<{ className?: string }>) {
-return (
-<div className={[
-"rounded-2xl shadow-soft border border-[rgba(255,255,255,0.08)]",
-"bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent),#121a2b]",
-"p-6",
-className,
-].join(" ")}>{children}</div>
-);
+export default function Card({ title, children, footer, className = '' }: Props) {
+  return (
+    <div className={`rounded-2xl border bg-white ${className}`}>
+      {title && <div className="px-5 py-4 border-b font-semibold">{title}</div>}
+      <div className="px-5 py-4">{children}</div>
+      {footer && <div className="px-5 py-4 border-t">{footer}</div>}
+    </div>
+  );
 }
+

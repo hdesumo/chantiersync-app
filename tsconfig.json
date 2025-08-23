@@ -1,32 +1,27 @@
 {
-  "name": "admin-chantiersync",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "engines": { "node": "18.x" },
-  "scripts": {
-    "dev": "next dev -p 3000",
-    "build": "next build",
-    "start": "next start"
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2021", "DOM", "DOM.Iterable"],
+    "jsx": "preserve",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["*"],
+      "@/lib/*": ["lib/*"],
+      "@/components/*": ["components/*"]
+    },
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "plugins": [{ "name": "next" }]
   },
-  "dependencies": {
-    "axios": "^1.7.2",
-    "lucide-react": "^0.441.0",
-    "next": "14.2.32",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "recharts": "^2.12.7"
-  },
-  "devDependencies": {
-    "@tailwindcss/typography": "^0.5.16",
-    "@types/node": "^20.14.12",
-    "@types/react": "^19.1.11",
-    "@types/react-dom": "^19.1.7",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.39",
-    "tailwindcss": "^3.4.10",
-    "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.2"
-  }
+  "include": ["next-env.d.ts", ".next/types/**/*.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
 }
 
