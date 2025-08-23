@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --radius: 12px;
+  /* Variables shadcn optionnelles (pas obligatoire) */
+  --background: 222 36% 7%;
+  --foreground: 214 100% 95%;
+  --primary: 210 100% 65%;
+  --primary-foreground: 222 36% 7%;
+  --card: 223 39% 10%;
+  --card-foreground: 214 100% 95%;
+  --muted: 219 28% 66%;
+  --muted-foreground: 219 28% 80%;
+  --border: 0 0% 100% / 0.08;
+  --input: 0 0% 100% / 0.08;
+  --ring: 210 100% 65%;
+}
+
+html, body { height: 100%; }
+
+body {
+  @apply bg-bg text-text min-h-screen;
+  background-image: radial-gradient(1200px 600px at 70% -20%, #15213a, #0b1220);
+  background-attachment: fixed;
+}
+

@@ -1,7 +1,10 @@
+<<<<<<< HEAD
 node_modules/
 .next/
 out/
 .env*
 !.env.example
 !.env.local.example
+=======
+>>>>>>> 7813242 (chore: init admin-chantiersync)
 .vercel
