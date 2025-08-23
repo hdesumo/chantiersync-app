@@ -1,10 +1,24 @@
-<<<<<<< HEAD
+# Node & logs
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js
 .next/
 out/
+.next.cache/
+
+# Vercel
+.vercel/
+
+# Env & OS
 .env*
 !.env.example
-!.env.local.example
-=======
->>>>>>> 7813242 (chore: init admin-chantiersync)
-.vercel
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+

@@ -1,5 +1,3 @@
-// components/Sidebar.tsx
-// =============================
 'use client';
 import Link from "next/link";
 import { LayoutDashboard, Users, Building2, Link as LinkIcon, FileBarChart2 } from "lucide-react";
