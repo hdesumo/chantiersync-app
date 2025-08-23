@@ -1,51 +1,32 @@
 {
-<<<<<<< HEAD
-  "name": "chantiersync-monorepo",
-  "private": true,
-  "workspaces": [
-    "apps/admin",
-    "apps/app"
-  ],
-  "scripts": {
-    "dev:admin": "npm run dev -w apps/admin",
-    "dev:app": "npm run dev -w apps/app",
-    "build:admin": "npm run build -w apps/admin",
-    "build:app": "npm run build -w apps/app",
-    "lint:admin": "npm run lint -w apps/admin",
-    "lint:app": "npm run lint -w apps/app"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.2"
-  },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
-=======
-  "name": "chantiersync-frontend",
+  "name": "admin-chantiersync",
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": { "node": "18.x" },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
     "axios": "^1.7.2",
     "lucide-react": "^0.441.0",
-    "next": "^14.2.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "next": "14.2.32",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
     "recharts": "^2.12.7"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
-    "@types/node": "^24.3.0",
+    "@types/node": "^20.14.12",
     "@types/react": "^19.1.11",
     "@types/react-dom": "^19.1.7",
-    "autoprefixer": "^10.4.21",
+    "autoprefixer": "^10.4.19",
     "postcss": "^8.4.39",
     "tailwindcss": "^3.4.10",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.9.2"
   }
->>>>>>> 7813242 (chore: init admin-chantiersync)
 }
+
