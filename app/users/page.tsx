@@ -1,130 +1,142 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '@/lib/api';
-import { cardClasses, buttonClasses } from '@/components/ui';
+import { buttonClasses, cardClasses } from '@/components/ui';
 
 type User = {
   id: string;
-  name?: string | null;
+  name: string;
   email: string;
-  role?: string;                // PLATFORM_ADMIN / TENANT_ADMIN / MANAGER / STAFF
+  role: string;
   enterprise_id?: string | null;
-  enterprise?: { id: string; name: string } | null; // si ton API hydrate
   createdAt?: string;
 };
 
 export default function UsersPage() {
-  const [items, setItems] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  // filtres simples
+  const [p, setP] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [q, setQ] = useState('');
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState<number | null>(null);
-  const limit = 20;
 
-  const hasItems = useMemo(() => items && items.length > 0, [items]);
+  const token =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('token') || undefined
+      : undefined;
 
-  async function load(p = 1) {
+  async function loadUsers() {
+    if (!token) return;
     setLoading(true);
     setErr(null);
     try {
-      // essaie GET /api/users?page=X&limit=Y&q=...
-      const { data } = await api.get('/api/users', { params: { page: p, limit, q: q || undefined } });
+      const qs = new URLSearchParams();
+      if (p) qs.set('page', String(p));
+      if (limit) qs.set('limit', String(limit));
+      if (q) qs.set('q', q);
+
+      const path = qs.toString() ? `/api/users?${qs.toString()}` : '/api/users';
+      const { data } = await api.get<User[]>(path, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+
       // tolère plusieurs formats de réponse
       const list: User[] = Array.isArray(data)
         ? data
-        : (data?.items ?? data?.users ?? []);
-      setItems(list || []);
-      setTotal(data?.total ?? null);
-      setPage(p);
+        : (data as any)?.items ?? [];
+
+      setUsers(list);
     } catch (e: any) {
-      setErr(e?.response?.data?.error || e?.message || 'Erreur de chargement');
+      setErr(e?.message || 'Erreur lors du chargement des utilisateurs');
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(1); /* on mount */ }, []);
-  useEffect(() => { const t = setTimeout(()=>load(1), 350); return ()=>clearTimeout(t); }, [q]); // debounce search
+  useEffect(() => {
+    loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, p, limit]);
 
-  const canPrev = page > 1;
-  const canNext = total ? page * limit < total : items.length === limit; // best effort
+  function onSearch(e: React.FormEvent) {
+    e.preventDefault();
+    setP(1);
+    loadUsers();
+  }
 
   return (
-    <div className="grid gap-4">
-      <div className={cardClasses('flex items-center justify-between')}>
+    <div className="p-6">
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Utilisateurs</h1>
-          <p className="text-mutedText text-sm">
-            Vue globale plateforme (lecture seule)
-          </p>
+          <h1 className="text-2xl font-bold">Utilisateurs (plateforme)</h1>
+          <p className="text-mutedText">Liste globale (rôle PLATFORM_ADMIN requis)</p>
         </div>
-        <div className="flex items-center gap-2">
+        <form onSubmit={onSearch} className="flex gap-2">
           <input
-            placeholder="Rechercher (nom, email)"
             value={q}
-            onChange={(e)=>setQ(e.target.value)}
-            className="rounded-xl bg-[#0f172a] border border-[rgba(255,255,255,0.08)] px-3 py-2 outline-none focus:border-brand w-64"
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Recherche (nom, email)"
+            className="border rounded-md px-3 py-2"
           />
-        </div>
+          <button className={buttonClasses()} type="submit">
+            Rechercher
+          </button>
+        </form>
       </div>
 
-      <div className={cardClasses()}>
-        {loading && <div className="text-mutedText">Chargement…</div>}
-        {err && <div className="text-red-400">{err}</div>}
-        {!loading && !hasItems && !err && <div className="text-mutedText">Aucun résultat</div>}
+      {loading && <p>Chargement…</p>}
+      {err && <p className="text-red-600">{err}</p>}
 
-        {!loading && hasItems && (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-mutedText">
-                  <tr className="border-b border-[rgba(255,255,255,0.08)]">
-                    <th className="py-2 pr-3">Nom</th>
-                    <th className="py-2 pr-3">Email</th>
-                    <th className="py-2 pr-3">Rôle</th>
-                    <th className="py-2 pr-3">Entreprise</th>
-                    <th className="py-2 pr-3">Créé</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map(u => (
-                    <tr key={u.id} className="border-b border-[rgba(255,255,255,0.06)] last:border-0">
-                      <td className="py-2 pr-3">{u.name || '—'}</td>
-                      <td className="py-2 pr-3">{u.email}</td>
-                      <td className="py-2 pr-3">{u.role || '—'}</td>
-                      <td className="py-2 pr-3">
-                        {u.enterprise?.name || u.enterprise_id || '—'}
-                      </td>
-                      <td className="py-2 pr-3">
-                        {u.createdAt ? new Date(u.createdAt).toLocaleString() : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="grid gap-3">
+        {users.map((u) => (
+          <div key={u.id} className={cardClasses('p-4')}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="font-semibold">{u.name}</div>
+                <div className="text-sm text-gray-600">{u.email}</div>
+              </div>
+              <div className="text-xs px-2 py-1 rounded bg-gray-100">{u.role}</div>
             </div>
+          </div>
+        ))}
+      </div>
 
-            <div className="flex items-center justify-between pt-3">
-              <div className="text-xs text-mutedText">
-                Page {page}{total ? ` — ~${total} users` : ''}
-              </div>
-              <div className="flex gap-2">
-                <button className={buttonClasses('ghost','px-3 py-1')}
-                        disabled={!canPrev}
-                        onClick={()=>canPrev && load(page-1)}>
-                  Précédent
-                </button>
-                <button className={buttonClasses('ghost','px-3 py-1')}
-                        disabled={!canNext}
-                        onClick={()=>canNext && load(page+1)}>
-                  Suivant
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+      {!loading && users.length === 0 && !err && (
+        <p className="text-gray-500 mt-6">Aucun utilisateur.</p>
+      )}
+
+      <div className="flex items-center gap-3 mt-6">
+        <button
+          className={buttonClasses('disabled:opacity-50')}
+          onClick={() => setP((x) => Math.max(1, x - 1))}
+          disabled={p <= 1 || loading}
+        >
+          ← Précédent
+        </button>
+        <span className="text-sm">Page {p}</span>
+        <button
+          className={buttonClasses('disabled:opacity-50')}
+          onClick={() => setP((x) => x + 1)}
+          disabled={loading || users.length < limit}
+        >
+          Suivant →
+        </button>
+
+        <select
+          value={limit}
+          onChange={(e) => setLimit(Number(e.target.value))}
+          className="ml-4 border rounded px-2 py-1 text-sm"
+          disabled={loading}
+        >
+          {[10, 20, 50].map((n) => (
+            <option key={n} value={n}>
+              {n}/page
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );
