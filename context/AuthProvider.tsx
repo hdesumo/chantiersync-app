@@ -37,23 +37,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (saved) setToken(saved);
   }, []);
 
-  const login = async (email: string, password: string) => {
-    // apiLogin renvoie ApiResult<AuthLoginResponse>
-    const res = (await apiLogin(email, password)) as ApiResult<AuthLoginResponse>;
+    const login = async (email: string, password: string) => {
+      // apiLogin: Promise<ApiResult<{ token: string }>>
+      const res = await apiLogin(email, password);
 
-    if (!res?.ok || !res.data?.token) {
-      // message d’erreur le plus précis possible
-      throw new Error(res?.error || 'Échec de connexion');
-    }
+      if (!res?.ok || !res.data?.token) {
+        throw new Error(res?.error || 'Échec de connexion');
+      }
 
-    const tok = res.data.token;
-    setToken(tok);
+      const tok = res.data.token;
+      setToken(tok);
 
-    // Persistance simple
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', tok);
-      document.cookie = `token=${tok}; Path=/; Max-Age=86400; Secure; SameSite=Lax`;
-    }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('token', tok);
+        document.cookie = `token=${tok}; Path=/; Max-Age=86400; Secure; SameSite=Lax`;
+      }
   };
 
   const logout = () => {
