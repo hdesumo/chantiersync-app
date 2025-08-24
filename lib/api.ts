@@ -53,13 +53,11 @@ export async function del<T = any>(path: string, init?: RequestInit): Promise<Ap
 
 /** ==== Endpoints métier ==== */
 
-/** Auth */
 export type AuthLoginResponse = { token: string; user: any };
 export async function login(email: string, password: string) {
   return post<AuthLoginResponse>('/api/auth/login', { email, password });
 }
 
-/** Sites (console client) */
 export type Site = {
   id: string;
   name: string;
@@ -76,11 +74,6 @@ export type ListSitesParams = {
   order?: string;
 };
 
-/**
- * listSites : supporte les 2 signatures
- * - listSites(token)
- * - listSites({ token, page, pageSize, q, order })
- */
 export async function listSites(arg?: string | ListSitesParams) {
   const params: ListSitesParams =
     typeof arg === 'string' ? { token: arg } : { ...(arg || {}) };
@@ -106,7 +99,6 @@ export async function createSite(
   });
 }
 
-/** Utilitaires */
 export function siteQrPngUrl(siteId: string) {
   return `${API_URL}/api/sites/${siteId}/qr.png`;
 }
