@@ -1,6 +1,7 @@
 // lib/api.ts
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.chantiersync.com';
+export const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://api.chantiersync.com';
 
 /** Appel générique JSON */
 async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -23,12 +24,19 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 export type ApiResult<T> = { data: T };
 
 /** Helpers HTTP */
-export async function get<T = any>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+export async function get<T = any>(
+  path: string,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, { method: 'GET', ...(init || {}) });
   return { data };
 }
 
-export async function post<T = any>(path: string, body?: any, init?: RequestInit): Promise<ApiResult<T>> {
+export async function post<T = any>(
+  path: string,
+  body?: any,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -37,7 +45,11 @@ export async function post<T = any>(path: string, body?: any, init?: RequestInit
   return { data };
 }
 
-export async function patch<T = any>(path: string, body?: any, init?: RequestInit): Promise<ApiResult<T>> {
+export async function patch<T = any>(
+  path: string,
+  body?: any,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, {
     method: 'PATCH',
     body: body ? JSON.stringify(body) : undefined,
@@ -46,18 +58,23 @@ export async function patch<T = any>(path: string, body?: any, init?: RequestIni
   return { data };
 }
 
-export async function del<T = any>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+export async function del<T = any>(
+  path: string,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, { method: 'DELETE', ...(init || {}) });
   return { data };
 }
 
 /** ==== Endpoints métier ==== */
 
+/** Auth */
 export type AuthLoginResponse = { token: string; user: any };
 export async function login(email: string, password: string) {
   return post<AuthLoginResponse>('/api/auth/login', { email, password });
 }
 
+/** Sites (console client) */
 export type Site = {
   id: string;
   name: string;
@@ -74,6 +91,7 @@ export type ListSitesParams = {
   order?: string;
 };
 
+/** listSites : supporte token (string) ou objet { token, page, ... } */
 export async function listSites(arg?: string | ListSitesParams) {
   const params: ListSitesParams =
     typeof arg === 'string' ? { token: arg } : { ...(arg || {}) };
@@ -99,6 +117,7 @@ export async function createSite(
   });
 }
 
+/** Utilitaires */
 export function siteQrPngUrl(siteId: string) {
   return `${API_URL}/api/sites/${siteId}/qr.png`;
 }

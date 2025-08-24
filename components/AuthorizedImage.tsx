@@ -3,11 +3,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 
 type Props = {
-  src: string;             // URL absolue côté API (ex: https://api.chantiersync.com/api/sites/:id/qr.png)
+  src: string;
   alt?: string;
   className?: string;
-  tokenOverride?: string;  // optionnel: passer un token spécifique
-  refetchKey?: string | number; // pour forcer le refetch si besoin
+  tokenOverride?: string;
+  refetchKey?: string | number;
 };
 
 export default function AuthorizedImage({
@@ -21,7 +21,6 @@ export default function AuthorizedImage({
   const [loading, setLoading] = useState<boolean>(true);
   const [err, setErr] = useState<string | null>(null);
 
-  // Token par défaut depuis localStorage (côté client)
   const token = useMemo(() => {
     if (tokenOverride) return tokenOverride;
     if (typeof window === 'undefined') return undefined;

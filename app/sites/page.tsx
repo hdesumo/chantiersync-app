@@ -5,7 +5,7 @@ import api, { type Site, siteQrPngUrl, createSite, listSites } from '@/lib/api';
 import AuthorizedImage from '@/components/AuthorizedImage';
 import { buttonClasses, cardClasses } from '@/components/ui';
 
-// ✅ Type local (pas d'import depuis lib/api)
+// Type local (pas d'import depuis lib/api)
 type ListSitesParams = {
   token?: string;
   page?: number;
