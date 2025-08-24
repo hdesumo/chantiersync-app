@@ -14,7 +14,6 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
-  // Recharge le token depuis le localStorage au premier rendu client
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = localStorage.getItem('token');
@@ -22,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    // apiLogin: Promise<ApiResult<AuthLoginResponse>>
+    // ✅ apiLogin renvoie: Promise<ApiResult<AuthLoginResponse>>
     const res: ApiResult<AuthLoginResponse> = await apiLogin(email, password);
 
     if (!res?.ok || !res.data?.token) {
@@ -47,7 +46,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(() => ({ token, login, logout }), [token]);
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
