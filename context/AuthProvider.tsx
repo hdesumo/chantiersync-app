@@ -1,58 +1,77 @@
-// context/AuthProvider.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { login as apiLogin } from '@/lib/api';
 
-type AuthCtx = {
+type AuthLoginResponse = {
+  token: string;
+  user?: {
+    id: string;
+    name?: string;
+    role?: string;
+    enterprise?: string;
+  };
+};
+
+type ApiResult<T> = {
+  ok: boolean;
+  data?: T;
+  error?: string;
+};
+
+type AuthContextValue = {
   token: string | null;
-  setToken: (t: string | null) => void;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 };
 
-const Ctx = createContext<AuthCtx | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, _setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
+  // Recharge le token depuis le localStorage au premier rendu client
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('cs_token');
-      if (saved) _setToken(saved);
-    } catch {}
+    if (typeof window === 'undefined') return;
+    const saved = localStorage.getItem('token');
+    if (saved) setToken(saved);
   }, []);
 
-  const setToken = (t: string | null) => {
-    _setToken(t);
-    try {
-      if (t) localStorage.setItem('cs_token', t);
-      else localStorage.removeItem('cs_token');
-      // cookie pour autoriser <img src=...> avec le token
-      document.cookie = t
-        ? `cs_token=${t}; Path=/; Max-Age=1209600; Secure; SameSite=Lax`
-        : `cs_token=; Path=/; Max-Age=0; Secure; SameSite=Lax`;
-    } catch {}
-  };
-
   const login = async (email: string, password: string) => {
-    const { token } = await apiLogin(email, password);
-    setToken(token);
+    // apiLogin renvoie ApiResult<AuthLoginResponse>
+    const res = (await apiLogin(email, password)) as ApiResult<AuthLoginResponse>;
+
+    if (!res?.ok || !res.data?.token) {
+      // message d’erreur le plus précis possible
+      throw new Error(res?.error || 'Échec de connexion');
+    }
+
+    const tok = res.data.token;
+    setToken(tok);
+
+    // Persistance simple
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', tok);
+      document.cookie = `token=${tok}; Path=/; Max-Age=86400; Secure; SameSite=Lax`;
+    }
   };
 
-  const logout = () => setToken(null);
+  const logout = () => {
+    setToken(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
+      document.cookie = 'token=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+    }
+  };
 
-  const value = useMemo<AuthCtx>(() => ({ token, setToken, login, logout }), [token]);
+  const value = useMemo(() => ({ token, login, logout }), [token]);
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const ctx = useContext(Ctx);
+  const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within <AuthProvider>');
   return ctx;
 }
-
-// export par défaut (compat avec import default)
-export default AuthProvider;
 
