@@ -3,10 +3,7 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.chantiersync.com';
 
 /** Appel générique JSON */
-async function apiFetch<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -26,19 +23,12 @@ async function apiFetch<T>(
 export type ApiResult<T> = { data: T };
 
 /** Helpers HTTP */
-export async function get<T = any>(
-  path: string,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
+export async function get<T = any>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, { method: 'GET', ...(init || {}) });
   return { data };
 }
 
-export async function post<T = any>(
-  path: string,
-  body?: any,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
+export async function post<T = any>(path: string, body?: any, init?: RequestInit): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, {
     method: 'POST',
     body: body ? JSON.stringify(body) : undefined,
@@ -47,11 +37,7 @@ export async function post<T = any>(
   return { data };
 }
 
-export async function patch<T = any>(
-  path: string,
-  body?: any,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
+export async function patch<T = any>(path: string, body?: any, init?: RequestInit): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, {
     method: 'PATCH',
     body: body ? JSON.stringify(body) : undefined,
@@ -60,15 +46,12 @@ export async function patch<T = any>(
   return { data };
 }
 
-export async function del<T = any>(
-  path: string,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
+export async function del<T = any>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, { method: 'DELETE', ...(init || {}) });
   return { data };
 }
 
-/** ==== Endpoints métier attendus par tes imports ==== */
+/** ==== Endpoints métier ==== */
 
 /** Auth */
 export type AuthLoginResponse = { token: string; user: any };
@@ -85,10 +68,33 @@ export type Site = {
   createdAt?: string;
 };
 
-export async function listSites(token?: string) {
-  return get<Site[]>('/api/sites', {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
+export type ListSitesParams = {
+  token?: string;
+  page?: number;
+  pageSize?: number;
+  q?: string;
+  order?: string;
+};
+
+/**
+ * listSites : supporte les 2 signatures
+ * - listSites(token)
+ * - listSites({ token, page, pageSize, q, order })
+ */
+export async function listSites(arg?: string | ListSitesParams) {
+  const params: ListSitesParams =
+    typeof arg === 'string' ? { token: arg } : { ...(arg || {}) };
+
+  const qs = new URLSearchParams();
+  if (params.page) qs.set('page', String(params.page));
+  if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+  if (params.q) qs.set('q', params.q);
+  if (params.order) qs.set('order', params.order);
+
+  const path = qs.toString() ? `/api/sites?${qs.toString()}` : '/api/sites';
+  const headers = params.token ? { Authorization: `Bearer ${params.token}` } : undefined;
+
+  return get<Site[]>(path, { headers });
 }
 
 export async function createSite(
