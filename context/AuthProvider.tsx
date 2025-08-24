@@ -13,7 +13,11 @@ type AuthLoginResponse = {
   };
 };
 
-type ApiResult<T> = { ok: boolean; data?: T; error?: string };
+type ApiResult<T> = {
+  ok: boolean;
+  data?: T;
+  error?: string;
+};
 
 type AuthContextValue = {
   token: string | null;
@@ -26,7 +30,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
-  // Recharge le token côté client au premier rendu
+  // Recharge le token depuis le localStorage au premier rendu client
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = localStorage.getItem('token');
@@ -34,10 +38,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
+    // apiLogin: Promise<ApiResult<{ token: string }>>
     const res: ApiResult<AuthLoginResponse> = await apiLogin(email, password);
+
     if (!res?.ok || !res.data?.token) {
       throw new Error(res?.error || 'Échec de connexion');
     }
+
     const tok = res.data.token;
     setToken(tok);
 
@@ -56,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(() => ({ token, login, logout }), [token]);
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

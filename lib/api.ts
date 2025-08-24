@@ -1,105 +1,106 @@
-// lib/api.ts
-// =============================
+// Client HTTP minimal basé sur fetch, avec types et helpers.
+// Utilise NEXT_PUBLIC_API_URL pour pointer vers l’API déployée.
 
-export type ApiResult<T> = { ok: boolean; data?: T; error?: string };
+export type ApiResult<T> = {
+  ok: boolean;
+  data?: T;
+  error?: string;
+};
 
-// Base URL (ex: https://api.chantiersync.com)
-const BASE_URL =
+const BASE =
   (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
-  (typeof window !== 'undefined' && (window as any).__API_URL__) ||
-  '';
+  'http://localhost:5000';
 
-function withAuth(headers: HeadersInit = {}, token?: string) {
-  const h: Record<string, string> = { 'Content-Type': 'application/json', ...headers as any };
-  if (token) h.Authorization = `Bearer ${token}`;
+function headers(token?: string): HeadersInit {
+  const h: HeadersInit = { 'Content-Type': 'application/json' };
+  if (token) h['Authorization'] = `Bearer ${token}`;
   return h;
 }
 
-async function request<T>(
-  path: string,
-  opts: RequestInit & { token?: string } = {}
-): Promise<ApiResult<T>> {
-  const { token, ...init } = opts;
+async function handle<T>(res: Response): Promise<ApiResult<T>> {
+  let body: any = null;
   try {
-    const res = await fetch(`${BASE_URL}${path}`, {
-      ...init,
-      headers: withAuth(init.headers || {}, token),
-      // important pour Next en SSR : évite la mise en cache non voulue
-      cache: 'no-store',
-    });
-
-    const contentType = res.headers.get('content-type') || '';
-    const isJson = contentType.includes('application/json');
-    const body = isJson ? await res.json() : (await res.text());
-
-    if (!res.ok) {
-      const msg = isJson ? body?.error || JSON.stringify(body) : (body as string);
-      return { ok: false, error: msg || `HTTP ${res.status}` };
-    }
-    return { ok: true, data: body as T };
-  } catch (e: any) {
-    return { ok: false, error: e?.message || 'Network error' };
+    // tente JSON, sinon texte
+    const txt = await res.text();
+    body = txt ? JSON.parse(txt) : null;
+  } catch {
+    body = null;
   }
+  if (!res.ok) {
+    const error = (body && (body.error || body.message)) || `HTTP ${res.status}`;
+    return { ok: false, error };
+  }
+  return { ok: true, data: body as T };
 }
 
-/* ========== AUTH ========== */
-
-export type AuthLoginResponse = { token: string; user?: any };
+// --------- Auth
+export type AuthLoginResponse = {
+  token: string;
+  user?: { id: string; name?: string; role?: string; enterprise?: string };
+};
 
 export async function login(
   email: string,
   password: string
 ): Promise<ApiResult<AuthLoginResponse>> {
-  return request<AuthLoginResponse>('/api/auth/login', {
+  const res = await fetch(`${BASE}/api/auth/login`, {
     method: 'POST',
+    headers: headers(),
     body: JSON.stringify({ email, password }),
+    cache: 'no-store',
   });
+  return handle<AuthLoginResponse>(res);
 }
 
-/* ========== USERS ========== */
-
-export type User = {
+// --------- Sites
+export type Site = {
   id: string;
-  email: string;
-  name?: string;
-  role?: string;
+  name: string;
+  enterprise_id?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
-export async function listUsers(params: {
-  token: string;
+export type ListSitesParams = {
+  token?: string;
   page?: number;
-  limit?: number;
+  pageSize?: number;
   q?: string;
-}): Promise<ApiResult<User[]>> {
-  const qs = new URLSearchParams();
-  if (params.page) qs.set('page', String(params.page));
-  if (params.limit) qs.set('limit', String(params.limit));
-  if (params.q) qs.set('q', params.q);
+  order?: string;
+};
 
-  const url = `/api/users${qs.toString() ? `?${qs.toString()}` : ''}`;
-  return request<User[]>(url, { token: params.token });
-}
+export async function listSites(
+  params: ListSitesParams
+): Promise<ApiResult<Site[]>> {
+  const { token, page, pageSize, q, order } = params;
+  const usp = new URLSearchParams();
+  if (page) usp.set('page', String(page));
+  if (pageSize) usp.set('pageSize', String(pageSize));
+  if (q) usp.set('q', q);
+  if (order) usp.set('order', order);
 
-/* ========== SITES ========== */
-
-export type Site = { id: string; name: string; createdAt?: string };
-
-export async function listSites(token: string): Promise<ApiResult<Site[]>> {
-  return request<Site[]>('/api/sites', { token });
+  const res = await fetch(`${BASE}/api/sites?${usp.toString()}`, {
+    method: 'GET',
+    headers: headers(token),
+    cache: 'no-store',
+  });
+  return handle<Site[]>(res);
 }
 
 export async function createSite(
-  input: { name: string },
-  token: string
+  payload: { name: string },
+  token?: string
 ): Promise<ApiResult<Site>> {
-  return request<Site>('/api/sites', {
+  const res = await fetch(`${BASE}/api/sites`, {
     method: 'POST',
-    token,
-    body: JSON.stringify(input),
+    headers: headers(token),
+    body: JSON.stringify(payload),
   });
+  return handle<Site>(res);
 }
 
-export function siteQrPngUrl(siteId: string): string {
-  // endpoint d’exemple (adapte si ton API diffère)
-  return `${BASE_URL}/api/sites/${siteId}/qr.png`;
+export function siteQrPngUrl(siteId: string, token?: string) {
+  const url = new URL(`/api/sites/${siteId}/qr.png`, BASE);
+  if (token) url.searchParams.set('token', token);
+  return url.toString();
 }
