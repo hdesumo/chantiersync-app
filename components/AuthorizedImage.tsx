@@ -1,61 +1,96 @@
-// components/AuthorizedImage.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
-import { API_URL } from '@/lib/api';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type Props = {
-  /** chemin API: ex. `/api/sites/123/qr.png?size=256` (ou URL absolue) */
-  src: string;
-  token: string;
+  src: string;             // URL absolue côté API (ex: https://api.chantiersync.com/api/sites/:id/qr.png)
   alt?: string;
   className?: string;
-  width?: number;
-  height?: number;
+  tokenOverride?: string;  // optionnel: passer un token spécifique
+  refetchKey?: string | number; // pour forcer le refetch si besoin
 };
 
-function toAbsolute(urlOrPath: string): string {
-  try {
-    return new URL(urlOrPath).toString(); // déjà absolu
-  } catch {
-    return new URL(urlOrPath, API_URL).toString(); // relatif -> absolu
-  }
-}
-
 export default function AuthorizedImage({
-  src, token, alt = '', className, width, height,
+  src,
+  alt = '',
+  className,
+  tokenOverride,
+  refetchKey,
 }: Props) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    let revoked = false;
-    const abs = toAbsolute(src);
+  // Token par défaut depuis localStorage (côté client)
+  const token = useMemo(() => {
+    if (tokenOverride) return tokenOverride;
+    if (typeof window === 'undefined') return undefined;
+    try {
+      return localStorage.getItem('token') || undefined;
+    } catch {
+      return undefined;
+    }
+  }, [tokenOverride]);
 
-    (async () => {
+  useEffect(() => {
+    let aborted = false;
+    let currentUrl: string | null = null;
+
+    async function run() {
+      setLoading(true);
+      setErr(null);
+      setBlobUrl(null);
+
       try {
-        setErr(null);
-        setBlobUrl(null);
-        const res = await fetch(abs, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const res = await fetch(src, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+          cache: 'no-store',
+        });
+
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Image ${res.status}: ${text || res.statusText}`);
+        }
+
         const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        if (!revoked) setBlobUrl(url);
+        if (aborted) return;
+        currentUrl = URL.createObjectURL(blob);
+        setBlobUrl(currentUrl);
       } catch (e: any) {
-        setErr(e?.message || 'load failed');
+        if (aborted) return;
+        setErr(e?.message || 'Erreur de chargement de l’image');
+      } finally {
+        if (!aborted) setLoading(false);
       }
-    })();
+    }
+
+    run();
 
     return () => {
-      revoked = true;
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      aborted = true;
+      if (currentUrl) {
+        URL.revokeObjectURL(currentUrl);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, token]);
+  }, [src, token, refetchKey]);
 
-  if (err) return <div className="text-sm text-red-600">Image: {err}</div>;
-  if (!blobUrl) return <div className="text-gray-500 text-sm">Chargement…</div>;
+  if (loading) {
+    return (
+      <div className={className}>
+        <div className="animate-pulse bg-gray-200 rounded-md w-full h-full" />
+      </div>
+    );
+  }
 
-  return <img src={blobUrl} alt={alt} className={className} width={width} height={height} />;
+  if (err || !blobUrl) {
+    return (
+      <div className={className}>
+        <div className="text-sm text-red-600">Impossible de charger l’image</div>
+      </div>
+    );
+  }
+
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img className={className} src={blobUrl} alt={alt} />;
 }
 
