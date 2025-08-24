@@ -1,16 +1,8 @@
-# Node & logs
+# Node / Next
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Next.js
 .next/
 out/
 .next.cache/
-
-# Vercel
 .vercel/
 
 # Env & OS
