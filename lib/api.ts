@@ -1,11 +1,41 @@
 // lib/api.ts
-// Client minimal basé sur fetch, avec typage ApiResult<T> et helpers pratiques.
+// =============================
 
+const BASE =
+  (process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') ||
+    'https://api.chantiersync.com') as string;
+
+type Dict = Record<string, string | number | boolean | undefined>;
+
+function qs(params?: Dict): string {
+  if (!params) return '';
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === undefined || v === null) continue;
+    u.set(k, String(v));
+  }
+  const s = u.toString();
+  return s ? `?${s}` : '';
+}
+
+async function doJson<T>(url: string, init: RequestInit): Promise<T> {
+  const res = await fetch(url, { ...init, cache: 'no-store' });
+  const json = (await res
+    .json()
+    .catch(() => ({}))) as any;
+
+  if (!res.ok) {
+    const msg = json?.error || json?.message || `${res.status} ${res.statusText}`;
+    throw new Error(msg);
+  }
+  return json as T;
+}
+
+// ---------------- Types partagés ----------------
 export type ApiResult<T> = {
   ok: boolean;
   data?: T;
   error?: string;
-  status?: number;
 };
 
 export type AuthLoginResponse = {
@@ -18,10 +48,11 @@ export type AuthLoginResponse = {
   };
 };
 
+// (Facultatif) quelques types APi
 export type Site = {
   id: string;
   name: string;
-  qr_url?: string;
+  enterprise_id?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -31,121 +62,113 @@ export type User = {
   email: string;
   name?: string;
   role?: string;
-  enterprise_id?: string;
+  createdAt?: string;
 };
 
-const BASE =
-  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
-  'https://api.chantiersync.com';
+// ---------------- Client minimal (axios-like) ----------------
+type GetOptions = {
+  params?: Dict;
+  token?: string;
+  headers?: Record<string, string>;
+};
 
-// ----- utilitaires -----
+type PostOptions = {
+  token?: string;
+  headers?: Record<string, string>;
+};
 
-function buildURL(path: string, params?: Record<string, any>) {
-  const url = new URL(path.startsWith('http') ? path : `${BASE}${path}`);
-  if (params) {
-    Object.entries(params)
-      .filter(([, v]) => v !== undefined && v !== null && v !== '')
-      .forEach(([k, v]) => url.searchParams.set(k, String(v)));
-  }
-  return url.toString();
-}
-
-async function http<T>(
-  path: string,
-  init?: (RequestInit & { params?: Record<string, any> }) | undefined,
-  token?: string
-): Promise<ApiResult<T>> {
-  try {
-    const url = buildURL(path, init?.params);
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...(init?.headers || {}),
-    };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(url, { ...init, headers, cache: 'no-store' });
-    const status = res.status;
-
-    // Tente de parser du JSON, sinon texte
-    let payload: any = undefined;
-    const text = await res.text();
-    try {
-      payload = text ? JSON.parse(text) : undefined;
-    } catch {
-      payload = text || undefined;
-    }
-
-    if (!res.ok) {
-      const msg =
-        (payload && (payload.error || payload.message)) ||
-        `HTTP ${status}`;
-      return { ok: false, error: msg, status };
-    }
-
-    return { ok: true, data: payload as T, status };
-  } catch (e: any) {
-    return { ok: false, error: e?.message || 'Network error' };
-  }
-}
-
-// Expose un mini « api » compatible avec un usage axios-like pour .get(url, { params })
 const api = {
-  get: <T>(path: string, opts?: { params?: Record<string, any>; token?: string }) =>
-    http<T>(path, { method: 'GET', params: opts?.params }, opts?.token),
-  post: <T>(path: string, body?: any, token?: string) =>
-    http<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined }, token),
-  put:  <T>(path: string, body?: any, token?: string) =>
-    http<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined }, token),
-  del:  <T>(path: string, token?: string) =>
-    http<T>(path, { method: 'DELETE' }, token),
+  async get<T = any>(path: string, opts: GetOptions = {}): Promise<{ data: T }> {
+    const url = `${BASE}${path}${qs(opts.params)}`;
+    const headers: Record<string, string> = { ...(opts.headers || {}) };
+    if (opts.token) headers.Authorization = `Bearer ${opts.token}`;
+
+    const data = await doJson<T>(url, { method: 'GET', headers });
+    return { data };
+  },
+
+  async post<T = any>(
+    path: string,
+    body?: any,
+    opts: PostOptions = {}
+  ): Promise<{ data: T }> {
+    const url = `${BASE}${path}`;
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(opts.headers || {}),
+    };
+    if (opts.token) headers.Authorization = `Bearer ${opts.token}`;
+
+    const data = await doJson<T>(url, {
+      method: 'POST',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return { data };
+  },
 };
 
-// ----- endpoints métiers -----
+export default api;
 
-export async function login(email: string, password: string): Promise<ApiResult<AuthLoginResponse>> {
-  return api.post<AuthLoginResponse>('/api/auth/login', { email, password });
+// ---------------- Endpoints helpers ----------------
+
+// Auth
+export async function login(
+  email: string,
+  password: string
+): Promise<ApiResult<AuthLoginResponse>> {
+  try {
+    const { data } = await api.post<AuthLoginResponse>('/api/auth/login', {
+      email,
+      password,
+    });
+    if (data?.token) {
+      return { ok: true, data };
+    }
+    return { ok: false, error: 'Réponse invalide du serveur' };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Erreur réseau' };
+  }
 }
 
-export async function listSites(opts?: {
+// Users (utilisé par /app/users/page.tsx)
+export async function listUsers(params: {
   token?: string;
   page?: number;
   limit?: number;
   q?: string;
+}) {
+  const { token, ...query } = params || {};
+  return api.get<User[]>('/api/users', { token, params: query });
+}
+
+// Sites (utilisé par /app/sites/page.tsx)
+export async function listSites(params: {
+  token?: string;
+  page?: number;
+  pageSize?: number;
+  q?: string;
   order?: string;
-}): Promise<ApiResult<Site[]>> {
-  return api.get<Site[]>('/api/sites', {
-    token: opts?.token,
-    params: {
-      page: opts?.page,
-      limit: opts?.limit,
-      q: opts?.q,
-      order: opts?.order,
-    },
-  });
+}): Promise<{ data: Site[] }> {
+  const { token, ...query } = params || {};
+  return api.get<Site[]>('/api/sites', { token, params: query });
 }
 
 export async function createSite(
   payload: { name: string },
-  token?: string
+  token: string
 ): Promise<ApiResult<Site>> {
-  return api.post<Site>('/api/sites', payload, token);
+  try {
+    const { data } = await api.post<Site>('/api/sites', payload, { token });
+    return { ok: true, data };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Erreur création' };
+  }
 }
 
-export function siteQrPngUrl(siteId: string) {
-  return `${BASE}/api/sites/${siteId}/qr.png`;
+// QR code PNG d’un site (URL directe, pratique pour <img/>)
+export function siteQrPngUrl(siteId: string, token?: string) {
+  const u = new URL(`${BASE}/api/sites/${siteId}/qr.png`);
+  if (token) u.searchParams.set('token', token);
+  return u.toString();
 }
-
-// (exemples admin)
-export async function listUsers(opts?: {
-  token?: string;
-  page?: number;
-  limit?: number;
-  q?: string;
-}): Promise<ApiResult<User[]>> {
-  return api.get<User[]>('/api/users', {
-    token: opts?.token,
-    params: { page: opts?.page, limit: opts?.limit, q: opts?.q },
-  });
-}
-
-export default api;
