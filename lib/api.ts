@@ -19,15 +19,14 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return res.json() as Promise<T>;
 }
 
-// ---- interface "axios-like" ----
 export type ApiResult<T> = { data: T };
 
-export async function get<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+export async function get<T = any>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, { method: 'GET', ...(init || {}) });
   return { data };
 }
 
-export async function post<T>(
+export async function post<T = any>(
   path: string,
   body?: any,
   init?: RequestInit
@@ -40,11 +39,10 @@ export async function post<T>(
   return { data };
 }
 
-// cas spécifique: login
+export type AuthLoginResponse = { token: string; user: any };
 export function authLogin(email: string, password: string) {
-  return post<{ token: string; user: any }>('/api/auth/login', { email, password });
+  return post<AuthLoginResponse>('/api/auth/login', { email, password });
 }
 
-// export "default" attendu dans tes imports
 const api = { API_URL, get, post, authLogin };
 export default api;
