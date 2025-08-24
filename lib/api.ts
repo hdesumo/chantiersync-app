@@ -1,8 +1,12 @@
 // lib/api.ts
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.chantiersync.com';
 
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+/** Appel générique JSON */
+async function apiFetch<T>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -11,7 +15,6 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
     },
     cache: 'no-store',
   });
-
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(`API ${res.status}: ${text || res.statusText}`);
@@ -19,9 +22,14 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return res.json() as Promise<T>;
 }
 
+/** Interface "axios-like" */
 export type ApiResult<T> = { data: T };
 
-export async function get<T = any>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
+/** Helpers HTTP */
+export async function get<T = any>(
+  path: string,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
   const data = await apiFetch<T>(path, { method: 'GET', ...(init || {}) });
   return { data };
 }
@@ -39,10 +47,75 @@ export async function post<T = any>(
   return { data };
 }
 
+export async function patch<T = any>(
+  path: string,
+  body?: any,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
+  const data = await apiFetch<T>(path, {
+    method: 'PATCH',
+    body: body ? JSON.stringify(body) : undefined,
+    ...(init || {}),
+  });
+  return { data };
+}
+
+export async function del<T = any>(
+  path: string,
+  init?: RequestInit
+): Promise<ApiResult<T>> {
+  const data = await apiFetch<T>(path, { method: 'DELETE', ...(init || {}) });
+  return { data };
+}
+
+/** ==== Endpoints métier attendus par tes imports ==== */
+
+/** Auth */
 export type AuthLoginResponse = { token: string; user: any };
-export function authLogin(email: string, password: string) {
+export async function login(email: string, password: string) {
   return post<AuthLoginResponse>('/api/auth/login', { email, password });
 }
 
-const api = { API_URL, get, post, authLogin };
+/** Sites (console client) */
+export type Site = {
+  id: string;
+  name: string;
+  address?: string | null;
+  enterprise_id?: string | null;
+  createdAt?: string;
+};
+
+export async function listSites(token?: string) {
+  return get<Site[]>('/api/sites', {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
+
+export async function createSite(
+  input: Partial<Pick<Site, 'name' | 'address'>>,
+  token?: string
+) {
+  return post<Site>('/api/sites', input, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  });
+}
+
+/** Utilitaires */
+export function siteQrPngUrl(siteId: string) {
+  return `${API_URL}/api/sites/${siteId}/qr.png`;
+}
+
+/** Export par défaut (utilisé comme `api`) */
+const api = {
+  API_URL,
+  get,
+  post,
+  patch,
+  del,
+  login,
+  listSites,
+  createSite,
+  siteQrPngUrl,
+};
+
 export default api;
