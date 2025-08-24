@@ -1,16 +1,18 @@
+// app/layout.tsx
+// =============================
 import './globals.css';
-import Header from '../components/Header';
-import Sidebar from '../components/Sidebar';
+import { AuthProvider } from '@/context/AuthProvider';
+
+export const metadata = {
+  title: 'Chantiersync — Admin',
+  description: 'Console plateforme',
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr">
       <body>
-        <Header />
-        <div className="mx-auto max-w-screen-2xl px-4 flex gap-4 mt-4">
-          <Sidebar />
-          <main className="flex-1 min-h-[70vh]">{children}</main>
-        </div>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

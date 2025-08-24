@@ -13,11 +13,7 @@ type AuthLoginResponse = {
   };
 };
 
-type ApiResult<T> = {
-  ok: boolean;
-  data?: T;
-  error?: string;
-};
+type ApiResult<T> = { ok: boolean; data?: T; error?: string };
 
 type AuthContextValue = {
   token: string | null;
@@ -30,28 +26,25 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
-  // Recharge le token depuis le localStorage au premier rendu client
+  // Recharge le token côté client au premier rendu
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = localStorage.getItem('token');
     if (saved) setToken(saved);
   }, []);
 
-    const login = async (email: string, password: string) => {
-      // apiLogin: Promise<ApiResult<{ token: string }>>
-      const res = await apiLogin(email, password);
+  const login = async (email: string, password: string) => {
+    const res: ApiResult<AuthLoginResponse> = await apiLogin(email, password);
+    if (!res?.ok || !res.data?.token) {
+      throw new Error(res?.error || 'Échec de connexion');
+    }
+    const tok = res.data.token;
+    setToken(tok);
 
-      if (!res?.ok || !res.data?.token) {
-        throw new Error(res?.error || 'Échec de connexion');
-      }
-
-      const tok = res.data.token;
-      setToken(tok);
-
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('token', tok);
-        document.cookie = `token=${tok}; Path=/; Max-Age=86400; Secure; SameSite=Lax`;
-      }
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', tok);
+      document.cookie = `token=${tok}; Path=/; Max-Age=86400; Secure; SameSite=Lax`;
+    }
   };
 
   const logout = () => {
@@ -63,7 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(() => ({ token, login, logout }), [token]);
-
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

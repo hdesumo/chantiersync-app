@@ -1,27 +1,28 @@
-// components/ui.ts
+// utilitaires de style simples, sans lib externe
 
-/** Join util */
-export function cn(...classes: Array<string | false | null | undefined>) {
-  return classes.filter(Boolean).join(' ');
+export function buttonClasses(extra?: string) {
+  return [
+    'inline-flex items-center justify-center',
+    'px-3 py-2 rounded-lg',
+    'bg-[#0f172a] hover:bg-[#0b1220]',
+    'border border-white/10',
+    'text-white',
+    'transition',
+    extra || '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
-/** Buttons */
-export function buttonClasses(...extra: string[]) {
-  return cn(
-    'inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-sm font-medium hover:bg-gray-50 active:translate-y-px transition',
-    ...extra
-  );
-}
-
-/** Inputs */
-export function inputClasses(...extra: string[]) {
-  return cn(
-    'w-full rounded-xl border px-4 py-3 outline-none focus:ring-2 focus:ring-gray-200',
-    ...extra
-  );
-}
-
-/** Cards */
-export function cardClasses(...extra: string[]) {
-  return cn('rounded-2xl border bg-white/90 backdrop-blur shadow-soft', ...extra);
+export function cardClasses(extra?: string) {
+  return [
+    'rounded-xl',
+    'border border-white/10',
+    'bg-white/[0.02]',
+    'backdrop-blur-sm',
+    'p-4',
+    extra || '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 }

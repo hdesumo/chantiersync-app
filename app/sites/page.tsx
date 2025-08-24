@@ -1,91 +1,66 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import api, { type Site, siteQrPngUrl, createSite, listSites } from '@/lib/api';
-import AuthorizedImage from '@/components/AuthorizedImage';
-import { buttonClasses, cardClasses } from '@/components/ui';
-
-// Type local (pas d'import depuis lib/api)
-type ListSitesParams = {
-  token?: string;
-  page?: number;
-  pageSize?: number;
-  q?: string;
-  order?: string;
-};
+import { useAuth } from '@/context/AuthProvider';
+import { createSite, listSites, siteQrPngUrl, type Site } from '@/lib/api';
 
 export default function SitesPage() {
+  const { token } = useAuth();
   const [sites, setSites] = useState<Site[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const token =
-    typeof window !== 'undefined'
-      ? localStorage.getItem('token') || undefined
-      : undefined;
-
-  async function loadSites() {
+  const load = async () => {
     if (!token) return;
     setLoading(true);
     setErr(null);
-    try {
-      const { data } = await listSites({ token } as ListSitesParams);
-      setSites(data);
-    } catch (e: any) {
-      setErr(e.message || 'Erreur lors du chargement');
-    } finally {
-      setLoading(false);
-    }
-  }
+    const res = await listSites(token);
+    if (!res.ok) setErr(res.error || 'Erreur');
+    else setSites(res.data || []);
+    setLoading(false);
+  };
 
-  async function onCreate() {
+  const onCreate = async () => {
     if (!token) return;
     const name = prompt('Nom du chantier ?');
     if (!name) return;
-    try {
-      await createSite({ name }, token);
-      await loadSites();
-    } catch (e: any) {
-      alert('Erreur création: ' + e.message);
-    }
-  }
+    const res = await createSite({ name }, token);
+    if (!res.ok) alert(res.error || 'Erreur création');
+    else load();
+  };
 
   useEffect(() => {
-    loadSites();
+    load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Chantiers</h1>
-        <button onClick={onCreate} className={buttonClasses()}>
-          + Nouveau chantier
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl">Chantiers</h1>
+        <button
+          onClick={onCreate}
+          className="px-3 py-2 rounded-lg bg-[#0f172a] border border-white/10"
+        >
+          Nouveau chantier
         </button>
       </div>
 
-      {loading && <p>Chargement...</p>}
-      {err && <p className="text-red-600">{err}</p>}
+      {loading && <p>Chargement…</p>}
+      {err && <p className="text-red-400">{err}</p>}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sites.map((s) => (
-          <div key={s.id} className={cardClasses('p-4')}>
-            <h2 className="font-semibold">{s.name}</h2>
-            {s.address && <p className="text-sm text-gray-500">{s.address}</p>}
-            <div className="mt-2">
-              <AuthorizedImage
-                src={siteQrPngUrl(s.id)}
-                alt={`QR ${s.name}`}
-                className="w-32 h-32"
-              />
-            </div>
+          <div key={s.id} className="rounded-xl border border-white/10 p-4">
+            <div className="font-medium mb-2">{s.name}</div>
+            <img
+              alt="QR site"
+              src={siteQrPngUrl(s.id)}
+              className="w-28 h-28 bg-black/20 rounded"
+            />
           </div>
         ))}
       </div>
-
-      {!loading && sites.length === 0 && (
-        <p className="text-gray-500">Aucun chantier trouvé.</p>
-      )}
     </div>
   );
 }

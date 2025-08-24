@@ -1,138 +1,105 @@
 // lib/api.ts
+// =============================
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://api.chantiersync.com';
+export type ApiResult<T> = { ok: boolean; data?: T; error?: string };
 
-/** Appel générique JSON */
-async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-    cache: 'no-store',
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`API ${res.status}: ${text || res.statusText}`);
+// Base URL (ex: https://api.chantiersync.com)
+const BASE_URL =
+  (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) ||
+  (typeof window !== 'undefined' && (window as any).__API_URL__) ||
+  '';
+
+function withAuth(headers: HeadersInit = {}, token?: string) {
+  const h: Record<string, string> = { 'Content-Type': 'application/json', ...headers as any };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
+
+async function request<T>(
+  path: string,
+  opts: RequestInit & { token?: string } = {}
+): Promise<ApiResult<T>> {
+  const { token, ...init } = opts;
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      headers: withAuth(init.headers || {}, token),
+      // important pour Next en SSR : évite la mise en cache non voulue
+      cache: 'no-store',
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+    const body = isJson ? await res.json() : (await res.text());
+
+    if (!res.ok) {
+      const msg = isJson ? body?.error || JSON.stringify(body) : (body as string);
+      return { ok: false, error: msg || `HTTP ${res.status}` };
+    }
+    return { ok: true, data: body as T };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Network error' };
   }
-  return res.json() as Promise<T>;
 }
 
-/** Interface "axios-like" */
-export type ApiResult<T> = { data: T };
+/* ========== AUTH ========== */
 
-/** Helpers HTTP */
-export async function get<T = any>(
-  path: string,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
-  const data = await apiFetch<T>(path, { method: 'GET', ...(init || {}) });
-  return { data };
-}
+export type AuthLoginResponse = { token: string; user?: any };
 
-export async function post<T = any>(
-  path: string,
-  body?: any,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
-  const data = await apiFetch<T>(path, {
+export async function login(
+  email: string,
+  password: string
+): Promise<ApiResult<AuthLoginResponse>> {
+  return request<AuthLoginResponse>('/api/auth/login', {
     method: 'POST',
-    body: body ? JSON.stringify(body) : undefined,
-    ...(init || {}),
+    body: JSON.stringify({ email, password }),
   });
-  return { data };
 }
 
-export async function patch<T = any>(
-  path: string,
-  body?: any,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
-  const data = await apiFetch<T>(path, {
-    method: 'PATCH',
-    body: body ? JSON.stringify(body) : undefined,
-    ...(init || {}),
-  });
-  return { data };
-}
+/* ========== USERS ========== */
 
-export async function del<T = any>(
-  path: string,
-  init?: RequestInit
-): Promise<ApiResult<T>> {
-  const data = await apiFetch<T>(path, { method: 'DELETE', ...(init || {}) });
-  return { data };
-}
-
-/** ==== Endpoints métier ==== */
-
-/** Auth */
-export type AuthLoginResponse = { token: string; user: any };
-export async function login(email: string, password: string) {
-  return post<AuthLoginResponse>('/api/auth/login', { email, password });
-}
-
-/** Sites (console client) */
-export type Site = {
+export type User = {
   id: string;
-  name: string;
-  address?: string | null;
-  enterprise_id?: string | null;
-  createdAt?: string;
+  email: string;
+  name?: string;
+  role?: string;
 };
 
-export type ListSitesParams = {
-  token?: string;
+export async function listUsers(params: {
+  token: string;
   page?: number;
-  pageSize?: number;
+  limit?: number;
   q?: string;
-  order?: string;
-};
-
-/** listSites : supporte token (string) ou objet { token, page, ... } */
-export async function listSites(arg?: string | ListSitesParams) {
-  const params: ListSitesParams =
-    typeof arg === 'string' ? { token: arg } : { ...(arg || {}) };
-
+}): Promise<ApiResult<User[]>> {
   const qs = new URLSearchParams();
   if (params.page) qs.set('page', String(params.page));
-  if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+  if (params.limit) qs.set('limit', String(params.limit));
   if (params.q) qs.set('q', params.q);
-  if (params.order) qs.set('order', params.order);
 
-  const path = qs.toString() ? `/api/sites?${qs.toString()}` : '/api/sites';
-  const headers = params.token ? { Authorization: `Bearer ${params.token}` } : undefined;
+  const url = `/api/users${qs.toString() ? `?${qs.toString()}` : ''}`;
+  return request<User[]>(url, { token: params.token });
+}
 
-  return get<Site[]>(path, { headers });
+/* ========== SITES ========== */
+
+export type Site = { id: string; name: string; createdAt?: string };
+
+export async function listSites(token: string): Promise<ApiResult<Site[]>> {
+  return request<Site[]>('/api/sites', { token });
 }
 
 export async function createSite(
-  input: Partial<Pick<Site, 'name' | 'address'>>,
-  token?: string
-) {
-  return post<Site>('/api/sites', input, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+  input: { name: string },
+  token: string
+): Promise<ApiResult<Site>> {
+  return request<Site>('/api/sites', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(input),
   });
 }
 
-/** Utilitaires */
-export function siteQrPngUrl(siteId: string) {
-  return `${API_URL}/api/sites/${siteId}/qr.png`;
+export function siteQrPngUrl(siteId: string): string {
+  // endpoint d’exemple (adapte si ton API diffère)
+  return `${BASE_URL}/api/sites/${siteId}/qr.png`;
 }
-
-/** Export par défaut (utilisé comme `api`) */
-const api = {
-  API_URL,
-  get,
-  post,
-  patch,
-  del,
-  login,
-  listSites,
-  createSite,
-  siteQrPngUrl,
-};
-
-export default api;

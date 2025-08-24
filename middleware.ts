@@ -1,37 +1,54 @@
-// middleware.ts
-import type { NextRequest } from 'next/server';
-import { NextResponse } from 'next/server';
+'use client';
 
-// Routes protégées par login
-const PROTECTED = [/^\/sites(?:\/.*)?$/, /^\/reports(?:\/.*)?$/];
+import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/context/AuthProvider';
 
-export function middleware(req: NextRequest) {
-  const { pathname, search } = req.nextUrl;
-  const token = req.cookies.get('cs_token')?.value || '';
-
-  const isProtected = PROTECTED.some((re) => re.test(pathname));
-  const isLogin = pathname === '/login';
-
-  // Si route protégée et pas de token -> redirige vers /login?next=<path>
-  if (isProtected && !token) {
-    const url = new URL('/login', req.url);
-    url.searchParams.set('next', pathname + (search || ''));
-    return NextResponse.redirect(url);
-  }
-
-  // Si déjà loggé et on va sur /login -> envoie vers /sites
-  if (isLogin && token) {
-    const url = new URL('/sites', req.url);
-    return NextResponse.redirect(url);
-  }
-
-  return NextResponse.next();
-}
-
-// Ignore les assets statiques pour éviter du travail inutile
-export const config = {
-  matcher: [
-    // tout sauf assets statiques et fichiers communs
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt)).*)',
-  ],
+type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
+  src: string;           // URL absolue ou relative à l’API
+  preferQueryToken?: boolean; // true => tente ?token=xxx d’abord
 };
+
+export default function AuthorizedImage({ src, preferQueryToken, ...imgProps }: Props) {
+  const { token } = useAuth();
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+
+  const withQueryToken = useMemo(() => {
+    if (!token) return src;
+    try {
+      const url = new URL(src, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+      url.searchParams.set('token', token);
+      return url.toString();
+    } catch {
+      // si src est absolu HTTP(s) ce sera OK ; sinon on laisse tel quel
+      return src.includes('?') ? `${src}&token=${encodeURIComponent(token)}` : `${src}?token=${encodeURIComponent(token)}`;
+    }
+  }, [src, token]);
+
+  useEffect(() => {
+    if (!token || preferQueryToken) {
+      setBlobUrl(null);
+      return;
+    }
+    let revoked: string | null = null;
+    (async () => {
+      try {
+        const res = await fetch(src, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        revoked = url;
+      } catch {
+        // fallback: pas de blob => on tentera avec query token via src ci-dessous
+        setBlobUrl(null);
+      }
+    })();
+    return () => {
+      if (revoked) URL.revokeObjectURL(revoked);
+    };
+  }, [src, token, preferQueryToken]);
+
+  const finalSrc = blobUrl || (preferQueryToken && token ? withQueryToken : src);
+
+  return <img src={finalSrc} {...imgProps} />;
+}

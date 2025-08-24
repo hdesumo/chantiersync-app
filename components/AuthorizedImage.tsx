@@ -1,95 +1,55 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@/context/AuthProvider';
 
-type Props = {
-  src: string;
-  alt?: string;
-  className?: string;
-  tokenOverride?: string;
-  refetchKey?: string | number;
+type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
+  src: string;           // URL absolue ou relative à l’API
+  preferQueryToken?: boolean; // true => tente ?token=xxx d’abord
 };
 
-export default function AuthorizedImage({
-  src,
-  alt = '',
-  className,
-  tokenOverride,
-  refetchKey,
-}: Props) {
+export default function AuthorizedImage({ src, preferQueryToken, ...imgProps }: Props) {
+  const { token } = useAuth();
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [err, setErr] = useState<string | null>(null);
 
-  const token = useMemo(() => {
-    if (tokenOverride) return tokenOverride;
-    if (typeof window === 'undefined') return undefined;
+  const withQueryToken = useMemo(() => {
+    if (!token) return src;
     try {
-      return localStorage.getItem('token') || undefined;
+      const url = new URL(src, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+      url.searchParams.set('token', token);
+      return url.toString();
     } catch {
-      return undefined;
+      // si src est absolu HTTP(s) ce sera OK ; sinon on laisse tel quel
+      return src.includes('?') ? `${src}&token=${encodeURIComponent(token)}` : `${src}?token=${encodeURIComponent(token)}`;
     }
-  }, [tokenOverride]);
+  }, [src, token]);
 
   useEffect(() => {
-    let aborted = false;
-    let currentUrl: string | null = null;
-
-    async function run() {
-      setLoading(true);
-      setErr(null);
+    if (!token || preferQueryToken) {
       setBlobUrl(null);
-
-      try {
-        const res = await fetch(src, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-          cache: 'no-store',
-        });
-
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(`Image ${res.status}: ${text || res.statusText}`);
-        }
-
-        const blob = await res.blob();
-        if (aborted) return;
-        currentUrl = URL.createObjectURL(blob);
-        setBlobUrl(currentUrl);
-      } catch (e: any) {
-        if (aborted) return;
-        setErr(e?.message || 'Erreur de chargement de l’image');
-      } finally {
-        if (!aborted) setLoading(false);
-      }
+      return;
     }
-
-    run();
-
-    return () => {
-      aborted = true;
-      if (currentUrl) {
-        URL.revokeObjectURL(currentUrl);
+    let revoked: string | null = null;
+    (async () => {
+      try {
+        const res = await fetch(src, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        revoked = url;
+      } catch {
+        // fallback: pas de blob => on tentera avec query token via src ci-dessous
+        setBlobUrl(null);
       }
+    })();
+    return () => {
+      if (revoked) URL.revokeObjectURL(revoked);
     };
-  }, [src, token, refetchKey]);
+  }, [src, token, preferQueryToken]);
 
-  if (loading) {
-    return (
-      <div className={className}>
-        <div className="animate-pulse bg-gray-200 rounded-md w-full h-full" />
-      </div>
-    );
-  }
+  const finalSrc = blobUrl || (preferQueryToken && token ? withQueryToken : src);
 
-  if (err || !blobUrl) {
-    return (
-      <div className={className}>
-        <div className="text-sm text-red-600">Impossible de charger l’image</div>
-      </div>
-    );
-  }
-
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img className={className} src={blobUrl} alt={alt} />;
+  return <img src={finalSrc} {...imgProps} />;
 }
 
