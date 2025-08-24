@@ -1,23 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { login as apiLogin } from '@/lib/api';
-
-type AuthLoginResponse = {
-  token: string;
-  user?: {
-    id: string;
-    name?: string;
-    role?: string;
-    enterprise?: string;
-  };
-};
-
-type ApiResult<T> = {
-  ok: boolean;
-  data?: T;
-  error?: string;
-};
+import { login as apiLogin, type ApiResult, type AuthLoginResponse } from '@/lib/api';
 
 type AuthContextValue = {
   token: string | null;
@@ -30,6 +14,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
+  // Restaure le token au boot client
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const saved = localStorage.getItem('token');
