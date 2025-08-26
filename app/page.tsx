@@ -1,12 +1,33 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthProvider';
 import { buttonClasses, cardClasses } from '@/components/ui';
 
 export default function HomePage() {
-  const { logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const router = useRouter();
+
+  // Garde d'auth: si pas connecté → /login
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [loading, user, router]);
+
+  if (loading) {
+    return (
+      <main className="p-6">
+        <p className="opacity-70">Chargement…</p>
+      </main>
+    );
+  }
+
+  if (!user) {
+    // On laisse la redirection s’effectuer
+    return null;
+  }
 
   return (
     <main className="p-6 space-y-4">

@@ -1,11 +1,11 @@
 // app/layout.tsx
-// =============================
-import './globals.css';
-import { AuthProvider } from '@/context/AuthProvider';
+import type { Metadata } from "next";
+import "./globals.css";
+import { AuthProvider } from "@/components/AuthProvider";
 
-export const metadata = {
-  title: 'Chantiersync — Admin',
-  description: 'Console plateforme',
+export const metadata: Metadata = {
+  title: "ChantierSync",
+  description: "Console client",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

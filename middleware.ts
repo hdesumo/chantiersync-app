@@ -1,54 +1,26 @@
-'use client';
+// middleware.ts
+import { NextRequest, NextResponse } from "next/server";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { useAuth } from '@/context/AuthProvider';
 
-type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
-  src: string;           // URL absolue ou relative à l’API
-  preferQueryToken?: boolean; // true => tente ?token=xxx d’abord
-};
+const PUBLIC = ["/login", "/favicon.ico", "/_next", "/api", "/assets", "/images"];
 
-export default function AuthorizedImage({ src, preferQueryToken, ...imgProps }: Props) {
-  const { token } = useAuth();
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
-  const withQueryToken = useMemo(() => {
-    if (!token) return src;
-    try {
-      const url = new URL(src, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
-      url.searchParams.set('token', token);
-      return url.toString();
-    } catch {
-      // si src est absolu HTTP(s) ce sera OK ; sinon on laisse tel quel
-      return src.includes('?') ? `${src}&token=${encodeURIComponent(token)}` : `${src}?token=${encodeURIComponent(token)}`;
-    }
-  }, [src, token]);
+export function middleware(req: NextRequest) {
+const { pathname } = req.nextUrl;
+const isPublic = PUBLIC.some((p) => pathname === p || pathname.startsWith(p + "/"));
+if (isPublic) return NextResponse.next();
 
-  useEffect(() => {
-    if (!token || preferQueryToken) {
-      setBlobUrl(null);
-      return;
-    }
-    let revoked: string | null = null;
-    (async () => {
-      try {
-        const res = await fetch(src, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        setBlobUrl(url);
-        revoked = url;
-      } catch {
-        // fallback: pas de blob => on tentera avec query token via src ci-dessous
-        setBlobUrl(null);
-      }
-    })();
-    return () => {
-      if (revoked) URL.revokeObjectURL(revoked);
-    };
-  }, [src, token, preferQueryToken]);
 
-  const finalSrc = blobUrl || (preferQueryToken && token ? withQueryToken : src);
-
-  return <img src={finalSrc} {...imgProps} />;
+const hasSession = req.cookies.has("cs_session");
+if (!hasSession) {
+const url = req.nextUrl.clone();
+url.pathname = "/login"; url.searchParams.set("next", pathname);
+return NextResponse.redirect(url);
 }
+return NextResponse.next();
+}
+
+
+export const config = {
+matcher: ["/((?!_next/static|_next/image|images|favicon.ico).*)"],
+};
