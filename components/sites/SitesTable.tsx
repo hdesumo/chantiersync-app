@@ -1,58 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { clientGet, clientDelete } from "@/lib/clientApi";
 
-type Site = { id: number; name: string; city?: string };
+interface Site {
+  id: string;
+  name: string;
+  location: string;
+}
 
-export default function SitesTable({ initialItems }: { initialItems: Site[] }) {
-  const [items, setItems] = useState<Site[]>(initialItems);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+const SitesTable = () => {
+  const [sites, setSites] = useState<Site[]>([]);
 
-  const refresh = async () => {
-    try {
-      setLoading(true);
-      setErr(null);
-      const data = await clientGet<{ items: Site[] }>("api/sites?limit=20");
-      setItems(data.items);
-    } catch (e: any) {
-      setErr(e?.message || "Erreur");
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    clientGet("/sites").then((data) => setSites(data));
+  }, []);
 
-  const remove = async (id: number) => {
-    if (!confirm("Supprimer ce chantier ?")) return;
-    await clientDelete(`api/sites/${id}`);
-    await refresh();
+  const handleDelete = async (id: string) => {
+    await clientDelete(`/sites/${id}`);
+    setSites((prev) => prev.filter((s) => s.id !== id));
   };
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <button onClick={refresh} className="px-3 py-2 rounded bg-black text-white">
-          Rafraîchir
-        </button>
-        {loading && <span>Chargement…</span>}
-        {err && <span className="text-red-600">{err}</span>}
-      </div>
-
-      <ul className="divide-y rounded border">
-        {items.map((s) => (
-          <li key={s.id} className="p-3 flex items-center justify-between">
-            <div>
-              <div className="font-medium">{s.name}</div>
-              <div className="text-sm opacity-70">{s.city}</div>
-            </div>
-            <button onClick={() => remove(s.id)} className="text-red-600">
-              Supprimer
-            </button>
-          </li>
+    <table className="min-w-full border">
+      <thead>
+        <tr>
+          <th className="px-4 py-2 border">Nom</th>
+          <th className="px-4 py-2 border">Localisation</th>
+          <th className="px-4 py-2 border">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sites.map((site) => (
+          <tr key={site.id}>
+            <td className="border px-4 py-2">{site.name}</td>
+            <td className="border px-4 py-2">{site.location}</td>
+            <td className="border px-4 py-2">
+              <button
+                onClick={() => handleDelete(site.id)}
+                className="bg-red-500 text-white px-2 py-1 rounded"
+              >
+                Supprimer
+              </button>
+            </td>
+          </tr>
         ))}
-      </ul>
-    </section>
+      </tbody>
+    </table>
   );
-}
+};
+
+export default SitesTable;
 

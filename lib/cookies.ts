@@ -1,16 +1,10 @@
 // lib/cookies.ts
-import Cookies from "js-cookie";
+import { cookies } from "next/headers";
 
 const COOKIE_NAME = "cs_session";
 
-export const setSessionCookie = (token: string) => {
-  Cookies.set(COOKIE_NAME, token, { expires: 1 }); // expire en 1 jour
-};
-
-export const getSessionCookie = (): string | undefined => {
-  return Cookies.get(COOKIE_NAME);
-};
-
-export const clearSessionCookie = () => {
-  Cookies.remove(COOKIE_NAME);
-};
+// Récupération du token de session côté serveur
+export function getSessionToken() {
+  const cookieStore = cookies();
+  return cookieStore.get(COOKIE_NAME)?.value || null;
+}
