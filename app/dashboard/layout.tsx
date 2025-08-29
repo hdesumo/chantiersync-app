@@ -1,73 +1,68 @@
 "use client";
 
-import { ReactNode } from "react";
+import React from "react";
+import { useAuth } from "@/context/AuthProvider";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthProvider"; // ✅ corrigé
+import { useRouter } from "next/navigation";
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { user, logout } = useAuth();
+  const router = useRouter();
 
-  const menu = [
-    { href: "/dashboard/superadmin", label: "SuperAdmin" },
-    { href: "/dashboard/superadmin/enterprises", label: "Entreprises" },
-    { href: "/dashboard/tenant", label: "Tenant Admin" },
-    { href: "/dashboard/tenant/users", label: "Utilisateurs" },
-    { href: "/dashboard/tenant/sites", label: "Sites" },
-    { href: "/dashboard/agent", label: "Agent" },
-    { href: "/dashboard/agent/reports", label: "Rapports" },
-    { href: "/dashboard/licenses", label: "Licenses" },
-  ];
-
-  const activeItem = menu.find((item) => pathname.startsWith(item.href));
-  const pageTitle = activeItem ? activeItem.label : "Dashboard";
-
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/login");
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-blue-700 text-white flex flex-col">
-        <div className="p-6 font-bold text-xl">ChantierSync</div>
-        <nav className="flex-1 px-4 space-y-2">
-          {menu.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`block py-2 px-3 rounded transition-colors ${
-                pathname.startsWith(item.href)
-                  ? "bg-blue-900 font-semibold"
-                  : "hover:bg-blue-600"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+      <aside className="w-64 bg-white shadow-md p-4">
+        <h2 className="text-xl font-bold mb-6">ChantierSync</h2>
+        <nav className="space-y-2">
+          <Link href="/dashboard/superadmin" className="block hover:text-blue-600">
+            Tableau de bord
+          </Link>
+          <Link href="/licenses" className="block hover:text-blue-600">
+            Licenses
+          </Link>
+          <Link href="/users" className="block hover:text-blue-600">
+            Utilisateurs
+          </Link>
+          <Link href="/tenants" className="block hover:text-blue-600">
+            Tenants
+          </Link>
+          <Link href="/sites" className="block hover:text-blue-600">
+            Sites
+          </Link>
+          <Link href="/reports" className="block hover:text-blue-600">
+            Rapports
+          </Link>
         </nav>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 p-6">
-        <header className="mb-6 border-b pb-3 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">{pageTitle}</h1>
+        <header className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold">Espace Admin</h1>
           <div className="flex items-center space-x-4">
             <span className="text-gray-700 font-medium">
-              {user?.name || user?.email || "Utilisateur"}
+              {user?.email || "Utilisateur"}
             </span>
             <button
               onClick={handleLogout}
-              className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
             >
-              Logout
+              Déconnexion
             </button>
           </div>
         </header>
-        {children}
+
+        <section>{children}</section>
       </main>
     </div>
   );
