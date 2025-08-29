@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { clearSessionCookie } from "@/lib/cookies";
 
 export async function POST() {
+  // On supprime le cookie de session
   clearSessionCookie();
-  return NextResponse.json({ ok: true });
+
+  return NextResponse.json({ success: true });
 }

@@ -1,36 +1,23 @@
 // lib/cookies.ts
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
 
 const COOKIE_NAME = "cs_session";
-const ONE_DAY = 60 * 60 * 24;
+const ONE_DAY = 60 * 60 * 24; // 24 heures
 
-// Récupération du token de session côté serveur
-export function getSessionToken() {
-  const cookieStore = cookies();
-  return cookieStore.get(COOKIE_NAME)?.value || null;
+// On définit maxAge par défaut, donc tu peux appeler setSessionCookie(token) sans 2e param
+export function setSessionCookie(token: string, maxAge: number = ONE_DAY) {
+  cookies().set(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: true,
+    path: "/",
+    maxAge,
+  });
 }
 
-// Définir le cookie de session (après login)
-export function setSessionCookie(response: NextResponse, token: string) {
-  response.cookies.set(COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: ONE_DAY,
-  });
-  return response;
+export function clearSessionCookie() {
+  cookies().delete(COOKIE_NAME);
 }
 
-// Effacer le cookie de session (après logout)
-export function clearSessionCookie(response: NextResponse) {
-  response.cookies.set(COOKIE_NAME, "", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
-  return response;
+export function getSessionToken(): string | undefined {
+  return cookies().get(COOKIE_NAME)?.value;
 }

@@ -4,28 +4,32 @@ import { setSessionCookie } from "@/lib/cookies";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL!;
-  const r = await fetch(`${apiBase}/api/auth/login`, {
+
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
-    cache: "no-store",
   });
 
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
+  const data = await res.json();
+
+  if (!res.ok) {
     return NextResponse.json(
-      { error: data?.error || "Invalid credentials" },
-      { status: r.status }
+      { error: data.error || "Invalid credentials" },
+      { status: res.status }
     );
   }
 
-  // On attend { token, user }
-  const token = data?.token as string | undefined;
+  const token = data.token;
   if (!token) {
-    return NextResponse.json({ error: "Missing token in response" }, { status: 500 });
+    return NextResponse.json(
+      { error: "No token received" },
+      { status: 500 }
+    );
   }
 
+  // Ici on peut appeler juste avec le token (maxAge est par défaut à 1 jour)
   setSessionCookie(token);
+
   return NextResponse.json({ user: data.user });
 }
