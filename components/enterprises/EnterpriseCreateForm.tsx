@@ -22,7 +22,6 @@ export default function EnterpriseCreateForm() {
     setSubmitting(true);
 
     try {
-      // 👉 TODO: remplacer par ton appel API réel pour créer une entreprise
       console.log("Entreprise créée :", {
         name,
         slug,
@@ -32,7 +31,6 @@ export default function EnterpriseCreateForm() {
         logoFile,
       });
 
-      // rafraîchir la page après succès
       router.refresh();
     } catch (e: any) {
       setErr(e?.message || "Erreur lors de la création");
@@ -44,7 +42,7 @@ export default function EnterpriseCreateForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-4 bg-white shadow p-6 rounded-lg"
+      className="space-y-4 bg-white p-6 rounded-lg shadow"
     >
       {err && <p className="text-red-500">{err}</p>}
 
@@ -87,7 +85,7 @@ export default function EnterpriseCreateForm() {
         disabled={submitting}
         className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
       >
-        {submitting ? "Envoi en cours..." : "Créer l’entreprise"}
+        {submitting ? "Envoi..." : "Créer l’entreprise"}
       </button>
     </form>
   );
