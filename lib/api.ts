@@ -1,5 +1,5 @@
 // lib/api.ts
-import { getSessionToken } from "@/lib/cookies";
+import { getSessionToken } from "@/lib/cookies.server";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
