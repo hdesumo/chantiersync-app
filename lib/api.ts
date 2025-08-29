@@ -24,3 +24,19 @@ export async function serverApiFetch(path: string, options: RequestInit = {}) {
   }
   return res.json();
 }
+
+// ---- SITE HELPERS ----
+export async function listSites() {
+  const res = await clientApi.get("/sites");
+  return res.data;
+}
+
+export async function createSite(data: any) {
+  const res = await clientApi.post("/sites", data);
+  return res.data;
+}
+
+export function siteQrPngUrl(siteId: string) {
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
+  return `${base}/sites/${siteId}/qr.png`;
+}
