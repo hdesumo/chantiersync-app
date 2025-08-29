@@ -1,11 +1,12 @@
 // lib/api.ts
 import { getSessionToken } from "@/lib/cookies.server";
+import type { Site } from "@/types/site";
+import type { Enterprise } from "@/types/enterprise";
 
-// Détecte la bonne base URL selon l'environnement
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   (process.env.NODE_ENV === "production"
-    ? "https://api.chantiersync.com" // à remplacer si ton backend est ailleurs
+    ? "https://api.chantiersync.com"
     : "http://localhost:8080/api");
 
 // -------------------
@@ -45,7 +46,7 @@ export async function serverApiFetch<T = any>(
       ...(options.headers || {}),
     },
     ...options,
-    cache: "no-store", // pour éviter les données obsolètes
+    cache: "no-store",
   });
 
   if (!res.ok) {
@@ -57,24 +58,24 @@ export async function serverApiFetch<T = any>(
 // -------------------
 //  SITES
 // -------------------
-export async function listSites() {
-  return apiFetch("/sites");
+export async function listSites(): Promise<Site[]> {
+  return apiFetch<Site[]>("/sites");
 }
 
-export async function createSite(payload: any) {
-  return apiFetch("/sites", {
+export async function createSite(payload: Partial<Site>): Promise<Site> {
+  return apiFetch<Site>("/sites", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
-export function siteQrPngUrl(siteId: string) {
+export function siteQrPngUrl(siteId: string): string {
   return `${API_BASE_URL}/sites/${siteId}/qr.png`;
 }
 
 // -------------------
 //  ENTERPRISES
 // -------------------
-export async function deleteEnterprise(id: string) {
+export async function deleteEnterprise(id: string): Promise<void> {
   return apiFetch(`/enterprises/${id}`, { method: "DELETE" });
 }
