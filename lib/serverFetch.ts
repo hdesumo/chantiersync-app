@@ -1,6 +1,6 @@
 // lib/serverFetch.ts
 import { cookies } from "next/headers";
-import { getSessionToken } from "./cookies";
+import { getSessionToken } from "./cookies.server";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "https://api.chantiersync.com/api";

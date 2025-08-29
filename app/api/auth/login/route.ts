@@ -1,6 +1,6 @@
 // app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { setSessionCookie } from "@/lib/cookies.server.server";
+import { setSessionCookie } from "@/lib/cookies.server";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
