@@ -1,0 +1,23 @@
+
+> admin-chantiersync@0.1.0 dev
+> next dev -p 3000
+
+  ▲ Next.js 14.2.32
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.7s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 574ms (72 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 3.5s (640 modules)
+ GET /login?next=%2Fdashboard%2Flicenses 200 in 4184ms
+ GET /login?next=%2Flogo.png 200 in 149ms
+ GET /login 200 in 108ms
+ GET /login?next=%2Flogo.png 200 in 80ms
+ GET /login?next=%2Fdashboard%2Flicenses 200 in 139ms
+ GET /login?next=%2Flogo.png 200 in 88ms
+ GET /login?next=%2Fdashboard%2Flicenses 200 in 119ms
+ GET /login?next=%2Flogo.png 200 in 70ms
+[?25h

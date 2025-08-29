@@ -1,29 +1,72 @@
-// lib/clientApi.ts
-export async function clientGet<T>(path: string) {
-  // path ex: "api/enterprises?limit=20"
-  const r = await fetch(`/api/proxy/${path}`, { cache: "no-store" });
-  if (!r.ok) throw new Error(await r.text());
-  return (await r.json()) as T;
+import axios from "axios";
+
+// Vérifie que la variable d'environnement est bien définie
+if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
+  console.error("❌ NEXT_PUBLIC_API_BASE_URL n'est pas défini dans .env.local !");
 }
 
-export async function clientPost<T>(path: string, body: unknown) {
-  const r = await fetch(`/api/proxy/${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(await r.text());
-  return (await r.json()) as T;
-}
+const clientApi = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL, // défini dans .env.local
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
+});
 
-export async function clientDelete<T>(path: string) {
-  const r = await fetch(`/api/proxy/${path}`, { method: "DELETE" });
-  if (!r.ok) throw new Error(await r.text());
-  return (await r.json()) as T;
-}
+// 🔍 Intercepteur des requêtes (ajoute le token)
+clientApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log("📤 Requête envoyée:", {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        data: config.data,
+      });
+    } else {
+      console.log("📤 Requête envoyée sans token:", {
+        url: config.url,
+        method: config.method,
+        data: config.data,
+      });
+    }
+    return config;
+  },
+  (error) => {
+    console.error("❌ Erreur requête Axios:", error);
+    return Promise.reject(error);
+  }
+);
 
-export async function clientUpload<T>(path: string, form: FormData) {
-  const r = await fetch(`/api/proxy/${path}`, { method: "POST", body: form });
-  if (!r.ok) throw new Error(await r.text());
-  return (await r.json()) as T;
-}
+// 🔍 Intercepteur des réponses
+clientApi.interceptors.response.use(
+  (response) => {
+    console.log("✅ Réponse reçue:", {
+      url: response.config.url,
+      status: response.status,
+      data: response.data,
+    });
+    return response;
+  },
+  (error) => {
+    if (error.response) {
+      console.error("❌ Erreur réponse backend:", {
+        url: error.config?.url,
+        status: error.response.status,
+        data: error.response.data,
+      });
+
+      if (error.response.status === 401) {
+        console.warn("⛔ Session expirée ou non autorisée");
+        // Ici, on peut éventuellement forcer une redirection vers /login
+      }
+    } else {
+      console.error("❌ Erreur réseau ou serveur injoignable:", error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default clientApi;

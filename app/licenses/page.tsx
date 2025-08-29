@@ -1,26 +1,21 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import api from "../api";
 import { useAuth } from "../AuthProvider";
-
-interface License {
-  id?: string;
-  enterprise_id: string;
-  enterprise?: { id: string; name: string };
-  type: string;
-  start_date: string;
-  end_date: string;
-  max_users: number;
-  status: string;
-}
+import {
+  getLicenses,
+  createLicense,
+  updateLicense,
+  deleteLicense,
+  License,
+} from "../lib/licenseApi";
 
 export default function LicensesPage() {
   const { token } = useAuth();
   const [licenses, setLicenses] = useState<License[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 👉 gestion modale
+  // gestion modale
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<License | null>(null);
   const [formData, setFormData] = useState<License>({
@@ -34,32 +29,31 @@ export default function LicensesPage() {
     status: "active",
   });
 
-  const fetchLicenses = async () => {
+  async function fetchLicenses() {
+    if (!token) return;
+    setLoading(true);
     try {
-      const res = await api.get("/licenses", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setLicenses(res.data);
+      const data = await getLicenses(token);
+      setLicenses(data);
     } catch (err) {
       console.error("Erreur fetch licenses", err);
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const deleteLicense = async (id: string) => {
+  async function handleDelete(id: string) {
     if (!confirm("Supprimer cette licence ?")) return;
+    if (!token) return;
     try {
-      await api.delete(`/licenses/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await deleteLicense(token, id);
       fetchLicenses();
     } catch (err) {
       console.error("Erreur suppression licence", err);
     }
-  };
+  }
 
-  const openModal = (license?: License) => {
+  function openModal(license?: License) {
     if (license) {
       setEditing(license);
       setFormData({
@@ -81,36 +75,32 @@ export default function LicensesPage() {
       });
     }
     setShowModal(true);
-  };
+  }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!token) return;
+
     try {
-      if (editing) {
-        await api.put(`/licenses/${editing.id}`, formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+      if (editing && editing.id) {
+        await updateLicense(token, editing.id, formData);
       } else {
-        await api.post("/licenses", formData, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await createLicense(token, formData);
       }
       setShowModal(false);
       fetchLicenses();
     } catch (err) {
       console.error("Erreur sauvegarde licence", err);
     }
-  };
+  }
 
   useEffect(() => {
     fetchLicenses();
-  }, []);
+  }, [token]);
 
   return (
     <div className="p-8 bg-gray-50 min-h-screen">
-      <h1 className="text-2xl font-bold text-blue-700 mb-6">
-        Gestion des Licences
-      </h1>
+      <h1 className="text-2xl font-bold text-blue-700 mb-6">Gestion des Licences</h1>
 
       {loading ? (
         <p className="text-gray-600">Chargement...</p>
@@ -133,12 +123,8 @@ export default function LicensesPage() {
                 <tr key={l.id} className="border-t hover:bg-gray-100">
                   <td className="px-4 py-2">{l.enterprise?.name}</td>
                   <td className="px-4 py-2">{l.type}</td>
-                  <td className="px-4 py-2">
-                    {new Date(l.start_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-2">
-                    {new Date(l.end_date).toLocaleDateString()}
-                  </td>
+                  <td className="px-4 py-2">{new Date(l.start_date).toLocaleDateString()}</td>
+                  <td className="px-4 py-2">{new Date(l.end_date).toLocaleDateString()}</td>
                   <td className="px-4 py-2">{l.max_users}</td>
                   <td className="px-4 py-2">
                     <span
@@ -161,7 +147,7 @@ export default function LicensesPage() {
                       ✏️ Modifier
                     </button>
                     <button
-                      onClick={() => deleteLicense(l.id!)}
+                      onClick={() => handleDelete(l.id!)}
                       className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
                     >
                       🗑️ Supprimer
@@ -210,9 +196,7 @@ export default function LicensesPage() {
               />
               <select
                 value={formData.type}
-                onChange={(e) =>
-                  setFormData({ ...formData, type: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full border px-3 py-2 rounded"
               >
                 <option value="ANNUAL">ANNUAL</option>
@@ -223,18 +207,14 @@ export default function LicensesPage() {
                 <input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, start_date: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                   className="w-1/2 border px-3 py-2 rounded"
                   required
                 />
                 <input
                   type="date"
                   value={formData.end_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, end_date: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                   className="w-1/2 border px-3 py-2 rounded"
                   required
                 />
@@ -243,17 +223,13 @@ export default function LicensesPage() {
                 type="number"
                 placeholder="Max Users"
                 value={formData.max_users}
-                onChange={(e) =>
-                  setFormData({ ...formData, max_users: Number(e.target.value) })
-                }
+                onChange={(e) => setFormData({ ...formData, max_users: Number(e.target.value) })}
                 className="w-full border px-3 py-2 rounded"
                 required
               />
               <select
                 value={formData.status}
-                onChange={(e) =>
-                  setFormData({ ...formData, status: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                 className="w-full border px-3 py-2 rounded"
               >
                 <option value="active">Active</option>
@@ -283,4 +259,3 @@ export default function LicensesPage() {
     </div>
   );
 }
-

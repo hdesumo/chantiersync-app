@@ -1,19 +1,9 @@
-// app/layout.tsx
-import type { Metadata } from "next";
-import "./globals.css";
-import { AuthProvider } from "@/components/AuthProvider";
+import { ReactNode } from "react";
 
-export const metadata: Metadata = {
-  title: "ChantierSync",
-  description: "Console client",
-};
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="fr">
-      <body>
-        <AuthProvider>{children}</AuthProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
