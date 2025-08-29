@@ -1,81 +1,80 @@
 // lib/api.ts
-import { getSessionToken } from "@/lib/cookies.server";
-import type { Site } from "@/types/site";
-import type { Enterprise } from "@/types/enterprise";
+import { getSessionToken } from "@/lib/cookiesserver"
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "https://api.chantiersync.com"
-    : "http://localhost:8080/api");
+  process.env.NEXT_PUBLIC_API_URL || "https://api.chantiersync.com"
 
-// -------------------
-//  FETCH CLIENT-SIDE
-// -------------------
-export async function apiFetch<T = any>(
-  endpoint: string,
+export async function apiFetch(
+  path: string,
   options: RequestInit = {}
-): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
-    ...options,
-  });
+  })
 
   if (!res.ok) {
-    throw new Error(`Erreur API (${res.status}): ${await res.text()}`);
+    throw new Error(`API error: ${res.status}`)
   }
-  return res.json();
+
+  return res.json()
 }
 
-// -------------------
-//  FETCH SERVER-SIDE
-// -------------------
-export async function serverApiFetch<T = any>(
-  endpoint: string,
+// --- Version server-side (utilise cookie de session) ---
+export async function serverApiFetch(
+  path: string,
   options: RequestInit = {}
-): Promise<T> {
-  const token = await getSessionToken();
+): Promise<any> {
+  const token = await getSessionToken()
 
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      Authorization: token ? `Bearer ${token}` : "",
       ...(options.headers || {}),
     },
-    ...options,
     cache: "no-store",
-  });
+  })
 
   if (!res.ok) {
-    throw new Error(`Erreur API (${res.status}): ${await res.text()}`);
+    throw new Error(`API error: ${res.status}`)
   }
-  return res.json();
+
+  return res.json()
 }
 
-// -------------------
-//  SITES
-// -------------------
-export async function listSites(): Promise<Site[]> {
-  return apiFetch<Site[]>("/sites");
+// --- Exemple d’endpoints spécifiques ---
+export async function listSites() {
+  return apiFetch("/sites", { method: "GET" })
 }
 
-export async function createSite(payload: Partial<Site>): Promise<Site> {
-  return apiFetch<Site>("/sites", {
+export async function createSite(data: any) {
+  return apiFetch("/sites", {
     method: "POST",
-    body: JSON.stringify(payload),
-  });
+    body: JSON.stringify(data),
+  })
 }
 
-export function siteQrPngUrl(siteId: string): string {
-  return `${API_BASE_URL}/sites/${siteId}/qr.png`;
+export function siteQrPngUrl(siteId: string) {
+  return `${API_BASE_URL}/sites/${siteId}/qr.png`
 }
 
-// -------------------
-//  ENTERPRISES
-// -------------------
-export async function deleteEnterprise(id: string): Promise<void> {
-  return apiFetch(`/enterprises/${id}`, { method: "DELETE" });
+export async function deleteEnterprise(id: string) {
+  return apiFetch(`/enterprises/${id}`, { method: "DELETE" })
 }
+
+// ✅ Export par défaut pour compatibilité avec les imports existants
+const api = {
+  apiFetch,
+  serverApiFetch,
+  listSites,
+  createSite,
+  siteQrPngUrl,
+  deleteEnterprise,
+}
+
+export default api
