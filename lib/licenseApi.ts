@@ -1,40 +1,26 @@
 // lib/licenseApi.ts
-import api from "../api";
+import clientApi from "@/lib/api"; // ✅ corrige l'import
 
-export interface License {
-  id?: string;
-  enterprise_id: string;
-  enterprise?: { id: string; name: string };
-  type: string;
-  start_date: string;
-  end_date: string;
-  max_users: number;
-  status: string;
-}
-
-export async function getLicenses(token: string): Promise<License[]> {
-  const res = await api.get("/licenses", {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+// Récupérer toutes les licences
+export async function getLicenses() {
+  const res = await clientApi.get("/licenses");
   return res.data;
 }
 
-export async function createLicense(token: string, data: License): Promise<License> {
-  const res = await api.post("/licenses", data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+// Créer une nouvelle licence
+export async function createLicense(payload: any) {
+  const res = await clientApi.post("/licenses", payload);
   return res.data;
 }
 
-export async function updateLicense(token: string, id: string, data: License): Promise<License> {
-  const res = await api.put(`/licenses/${id}`, data, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+// Supprimer une licence
+export async function deleteLicense(id: string) {
+  const res = await clientApi.delete(`/licenses/${id}`);
   return res.data;
 }
 
-export async function deleteLicense(token: string, id: string): Promise<void> {
-  await api.delete(`/licenses/${id}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+// Mettre à jour une licence
+export async function updateLicense(id: string, payload: any) {
+  const res = await clientApi.put(`/licenses/${id}`, payload);
+  return res.data;
 }
