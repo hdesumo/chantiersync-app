@@ -1,26 +1,24 @@
 // lib/licenseApi.ts
-import clientApi from "@/lib/api"; // ✅ corrige l'import
+import { apiFetch } from "@/lib/api";
 
-// Récupérer toutes les licences
-export async function getLicenses() {
-  const res = await clientApi.get("/licenses");
-  return res.data;
+export interface License {
+  id: string;
+  key: string;
+  status: "active" | "inactive";
+  enterpriseId: string;
 }
 
-// Créer une nouvelle licence
-export async function createLicense(payload: any) {
-  const res = await clientApi.post("/licenses", payload);
-  return res.data;
+export async function listLicenses(): Promise<License[]> {
+  return apiFetch<License[]>("/licenses");
 }
 
-// Supprimer une licence
-export async function deleteLicense(id: string) {
-  const res = await clientApi.delete(`/licenses/${id}`);
-  return res.data;
+export async function createLicense(payload: Partial<License>): Promise<License> {
+  return apiFetch<License>("/licenses", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
-// Mettre à jour une licence
-export async function updateLicense(id: string, payload: any) {
-  const res = await clientApi.put(`/licenses/${id}`, payload);
-  return res.data;
+export async function deleteLicense(id: string): Promise<void> {
+  return apiFetch(`/licenses/${id}`, { method: "DELETE" });
 }
