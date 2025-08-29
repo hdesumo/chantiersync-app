@@ -8,6 +8,10 @@ export interface License {
   enterpriseId: string;
 }
 
+export async function getLicenses(): Promise<License[]> {
+  return apiFetch<License[]>("/licenses");
+}
+
 export async function listLicenses(): Promise<License[]> {
   return apiFetch<License[]>("/licenses");
 }

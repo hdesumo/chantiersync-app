@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { apiFetch } from "@/lib/api";
+import { apiFetch } from "@/lib/api"; // ✅ bien importé
 
 interface User {
   id: string;
@@ -27,8 +27,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const data = await apiFetch<User>("/auth/me");
         setUser(data);
-      } catch (err) {
-        console.warn("Utilisateur non connecté");
+      } catch {
+        setUser(null);
       } finally {
         setLoading(false);
       }

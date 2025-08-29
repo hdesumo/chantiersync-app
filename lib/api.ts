@@ -1,147 +1,80 @@
 // lib/api.ts
 import { getSessionToken } from "@/lib/cookies.server";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
+// Détecte la bonne base URL selon l'environnement
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://api.chantiersync.com" // à remplacer si ton backend est ailleurs
+    : "http://localhost:8080/api");
 
 // -------------------
-// Types
+//  FETCH CLIENT-SIDE
 // -------------------
-export interface User {
-  id: string;
-  email: string;
-  name?: string;
-  role: string;
-}
-
-export interface Enterprise {
-  id: string;
-  name: string;
-  slug: string;
-  phone?: string;
-  address?: string;
-}
-
-export interface Site {
-  id: string;
-  name: string;
-  address: string;
-}
-
-export interface Report {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  priority: string;
-  siteId: string;
-}
-
-// -------------------
-// Helpers
-// -------------------
-async function apiFetch<T>(
+export async function apiFetch<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
+    ...options,
   });
 
-  if (!res.ok) throw new Error(`API error ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`Erreur API (${res.status}): ${await res.text()}`);
+  }
   return res.json();
 }
 
-// Version serveur (inclut cookie session)
-export async function serverApiFetch<T>(
+// -------------------
+//  FETCH SERVER-SIDE
+// -------------------
+export async function serverApiFetch<T = any>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
   const token = await getSessionToken();
-  const res = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
+
+  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
-    cache: "no-store",
+    ...options,
+    cache: "no-store", // pour éviter les données obsolètes
   });
 
-  if (!res.ok) throw new Error(`Server API error ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`Erreur API (${res.status}): ${await res.text()}`);
+  }
   return res.json();
 }
 
 // -------------------
-// Sites
+//  SITES
 // -------------------
-export async function listSites(): Promise<Site[]> {
+export async function listSites() {
   return apiFetch("/sites");
 }
 
-export async function createSite(data: Partial<Site>): Promise<Site> {
+export async function createSite(payload: any) {
   return apiFetch("/sites", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 }
 
-export function siteQrPngUrl(siteId: string): string {
-  return `${API_URL}/sites/${siteId}/qr.png`;
+export function siteQrPngUrl(siteId: string) {
+  return `${API_BASE_URL}/sites/${siteId}/qr.png`;
 }
 
 // -------------------
-// Enterprises
+//  ENTERPRISES
 // -------------------
-export async function listEnterprises(): Promise<Enterprise[]> {
-  return apiFetch("/enterprises");
-}
-
-export async function createEnterprise(
-  data: Partial<Enterprise>
-): Promise<Enterprise> {
-  return apiFetch("/enterprises", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateEnterprise(
-  id: string,
-  data: Partial<Enterprise>
-): Promise<Enterprise> {
-  return apiFetch(`/enterprises/${id}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteEnterprise(id: string): Promise<{ message: string }> {
-  return apiFetch(`/enterprises/${id}`, {
-    method: "DELETE",
-  });
-}
-
-// -------------------
-// Users
-// -------------------
-export async function listUsers(): Promise<User[]> {
-  return apiFetch("/users");
-}
-
-// -------------------
-// Reports
-// -------------------
-export async function listReports(): Promise<Report[]> {
-  return apiFetch("/reports");
-}
-
-// -------------------
-// Licenses (si utilisé)
-// -------------------
-export async function listLicenses(): Promise<any[]> {
-  return apiFetch("/licenses");
+export async function deleteEnterprise(id: string) {
+  return apiFetch(`/enterprises/${id}`, { method: "DELETE" });
 }
