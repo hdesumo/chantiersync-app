@@ -1,80 +1,65 @@
 // lib/api.ts
-import { getSessionToken } from "@/lib/cookiesserver"
+import { cookies } from "next/headers";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://api.chantiersync.com"
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
 
-export async function apiFetch(
-  path: string,
+/**
+ * Fetch côté client (navigateur)
+ */
+export async function clientApiFetch<T>(
+  endpoint: string,
   options: RequestInit = {}
-): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
-  })
-
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-
-  return res.json()
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
 }
 
-// --- Version server-side (utilise cookie de session) ---
-export async function serverApiFetch(
-  path: string,
+/**
+ * Fetch côté serveur (Next.js server components / routes)
+ */
+export async function serverApiFetch<T>(
+  endpoint: string,
   options: RequestInit = {}
-): Promise<any> {
-  const token = await getSessionToken()
+): Promise<T> {
+  const cookieStore = cookies();
+  const token = cookieStore.get("cs_session")?.value;
 
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: token ? `Bearer ${token}` : "",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...(options.headers || {}),
     },
     cache: "no-store",
-  })
+  });
 
-  if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
-  }
-
-  return res.json()
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
 }
 
-// --- Exemple d’endpoints spécifiques ---
+/**
+ * Exemple d’API utilitaires pour sites
+ */
 export async function listSites() {
-  return apiFetch("/sites", { method: "GET" })
+  return clientApiFetch("/sites");
 }
 
 export async function createSite(data: any) {
-  return apiFetch("/sites", {
+  return clientApiFetch("/sites", {
     method: "POST",
     body: JSON.stringify(data),
-  })
+  });
 }
 
 export function siteQrPngUrl(siteId: string) {
-  return `${API_BASE_URL}/sites/${siteId}/qr.png`
+  return `${API_BASE}/sites/${siteId}/qr.png`;
 }
-
-export async function deleteEnterprise(id: string) {
-  return apiFetch(`/enterprises/${id}`, { method: "DELETE" })
-}
-
-// ✅ Export par défaut pour compatibilité avec les imports existants
-const api = {
-  apiFetch,
-  serverApiFetch,
-  listSites,
-  createSite,
-  siteQrPngUrl,
-  deleteEnterprise,
-}
-
-export default api
