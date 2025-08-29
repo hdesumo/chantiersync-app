@@ -1,17 +1,15 @@
 // lib/api.ts
-import axios from "axios";
+import { User, Enterprise, License, Site, Report, Tenant } from "./types";
 
-const clientApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api",
-  withCredentials: true,
-});
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "https://api.chantiersync.com/api";
 
-export default clientApi;
-
-// ---- SERVER-SIDE FETCH ----
-export async function serverApiFetch(path: string, options: RequestInit = {}) {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
-  const res = await fetch(`${base}${path}`, {
+// --- Utilitaires génériques fetch ---
+async function apiFetch<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -19,24 +17,57 @@ export async function serverApiFetch(path: string, options: RequestInit = {}) {
     },
     cache: "no-store",
   });
+
   if (!res.ok) {
-    throw new Error(`Erreur API ${res.status}: ${await res.text()}`);
+    throw new Error(`API error ${res.status}: ${await res.text()}`);
   }
   return res.json();
 }
 
-// ---- SITE HELPERS ----
-export async function listSites() {
-  const res = await clientApi.get("/sites");
-  return res.data;
+// --- AUTH ---
+export async function login(email: string, password: string) {
+  return apiFetch<{ token: string; user: User }>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
 }
 
-export async function createSite(data: any) {
-  const res = await clientApi.post("/sites", data);
-  return res.data;
+export async function logout() {
+  return apiFetch<{ message: string }>("/auth/logout", { method: "POST" });
 }
 
-export function siteQrPngUrl(siteId: string) {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
-  return `${base}/sites/${siteId}/qr.png`;
+// --- USERS ---
+export async function listUsers(): Promise<User[]> {
+  return apiFetch("/users");
 }
+
+// --- ENTERPRISES ---
+export async function listEnterprises(): Promise<Enterprise[]> {
+  return apiFetch("/enterprises");
+}
+
+export async function getEnterprise(id: string): Promise<Enterprise> {
+  return apiFetch(`/enterprises/${id}`);
+}
+
+export async function createEnterprise(
+  payload: Partial<Enterprise>
+): Promise<Enterprise> {
+  return apiFetch("/enterprises", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateEnterprise(
+  id: string,
+  payload: Partial<Enterprise>
+): Promise<Enterprise> {
+  return apiFetch(`/enterprises/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteEnterprise(id: string) {
+  return apiFetch
