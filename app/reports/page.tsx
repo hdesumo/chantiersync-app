@@ -1,22 +1,12 @@
 // app/reports/page.tsx
-import React, { useEffect, useState } from "react";
-import { clientGet } from "@/lib/clientApi";
+import ReportsList from "@/components/ReportsList";
 
-export default function ReportsPage() {
-  const [reports, setReports] = useState<any[]>([]);
+export default async function ReportsPage() {
+  // ⚡ fetch côté serveur
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/reports`, {
+    cache: "no-store",
+  });
+  const reports = await res.json();
 
-  useEffect(() => {
-    clientGet("/reports").then(setReports).catch(console.error);
-  }, []);
-
-  return (
-    <section>
-      <h1 className="text-2xl font-bold mb-4">Rapports</h1>
-      <ul>
-        {reports.map((r) => (
-          <li key={r.id}>{r.title}</li>
-        ))}
-      </ul>
-    </section>
-  );
+  return <ReportsList initialReports={reports} />;
 }
