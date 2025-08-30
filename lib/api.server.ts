@@ -1,11 +1,11 @@
-// lib/serverFetch.ts
-import { getSessionToken } from "./cookies.server";
+// lib/api.server.ts
+import { cookies } from "next/headers";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080/api";
 
-export async function serverFetch(path: string, options: RequestInit = {}) {
-  const token = getSessionToken();
+export async function serverApiFetch(path: string, options: RequestInit = {}) {
+  const token = cookies().get("cs_session")?.value;
 
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,

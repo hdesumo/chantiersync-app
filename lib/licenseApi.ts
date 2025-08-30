@@ -1,17 +1,10 @@
 // lib/licenseApi.ts
-import { clientApiFetch } from "./api";
+import { clientGet, clientPost } from "./clientApi";
 
 export async function getLicenses() {
-  return clientApiFetch("/licenses");
+  return clientGet("/licenses");
 }
 
 export async function createLicense(data: any) {
-  return clientApiFetch("/licenses", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function deleteLicense(id: string) {
-  return clientApiFetch(`/licenses/${id}`, { method: "DELETE" });
+  return clientPost("/licenses", data);
 }

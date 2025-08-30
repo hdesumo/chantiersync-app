@@ -3,8 +3,16 @@ import { NextResponse } from "next/server";
 import { clearSessionCookie } from "@/lib/cookies.server";
 
 export async function POST() {
-  // On supprime le cookie de session
-  clearSessionCookie();
+  try {
+    // ✅ Supprimer le cookie
+    clearSessionCookie();
 
-  return NextResponse.json({ success: true });
+    return NextResponse.json({ message: "Déconnexion réussie" });
+  } catch (err: any) {
+    console.error("Logout error:", err);
+    return NextResponse.json(
+      { error: "Erreur interne serveur" },
+      { status: 500 }
+    );
+  }
 }
