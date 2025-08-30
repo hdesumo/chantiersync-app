@@ -30,7 +30,7 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }; // <- FIN correcte de handleSubmit
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
@@ -73,4 +73,11 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-blue-600 text-whit
+          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+        >
+          {loading ? "Connexion..." : "Se connecter"}
+        </button>
+      </form>
+    </div>
+  );
+}
