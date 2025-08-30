@@ -1,7 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import clientApi, { clientGet } from "@/lib/clientApi";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
+import { useRouter } from "next/navigation";
 
 type User = {
   id: string;
@@ -13,7 +19,7 @@ type User = {
 type AuthContextType = {
   user: User | null;
   loading: boolean;
-  login: (token: string, userData: User) => void;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => void;
 };
 
@@ -22,14 +28,22 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  // Vérification de la session existante
+  // Vérification session existante
   useEffect(() => {
     async function checkAuth() {
       try {
-        const data = await clientGet("/auth/me"); // endpoint à adapter côté backend
-        setUser(data.user);
-      } catch (err) {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+        } else {
+          setUser(null);
+        }
+      } catch {
         setUser(null);
       } finally {
         setLoading(false);
@@ -38,14 +52,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, []);
 
-  const login = (token: string, userData: User) => {
-    // ⚡ Ici tu peux aussi stocker le token dans les cookies si nécessaire
-    setUser(userData);
+  // ✅ Login version Option A
+  const login = async (credentials: { email: string; password: string }) => {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+      credentials: "include",
+    });
+
+    if (!res.ok) throw new Error("Échec de la connexion");
+
+    const data = await res.json(); // { token, user }
+    setUser(data.user);
+
+    // ⚡ tu peux aussi stocker le token dans cookie côté backend
   };
 
   const logout = () => {
-    // ⚡ Ici tu peux appeler l’API de logout et supprimer les cookies/token
     setUser(null);
+    router.push("/login");
   };
 
   return (
@@ -57,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth doit être utilisé dans un AuthProvider");
   }
   return context;
