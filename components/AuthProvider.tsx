@@ -1,76 +1,61 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import {
-  login as apiLogin,
-  logout as apiLogout,
-  register as apiRegister,
-  getCurrentUser,
-} from "@/lib/auth";
-import type { User } from "@/types/user";
+import { useRouter } from "next/navigation";
 
-interface AuthContextType {
+type User = {
+  id: string;
+  email: string;
+  role: string;
+};
+
+type AuthContextType = {
   user: User | null;
-  loading: boolean;
-  login: (payload: any) => Promise<void>;
-  register: (payload: any) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-}
+  login: (user: User, token: string) => void;
+  logout: () => void;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-  // Vérifie la session au montage
+  // 🔹 Charger user/token depuis localStorage au montage
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const currentUser = await getCurrentUser();
-        setUser(currentUser);
-      } catch {
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchUser();
+    const storedUser = localStorage.getItem("cs_user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
   }, []);
 
-  const login = async (payload: any) => {
-    const u = await apiLogin(payload);
-    setUser(u);
+  // 🔹 Connexion → on stocke user et token en localStorage
+  const login = (user: User, token: string) => {
+    localStorage.setItem("cs_user", JSON.stringify(user));
+    localStorage.setItem("cs_token", token);
+    setUser(user);
   };
 
-  const register = async (payload: any) => {
-    const u = await apiRegister(payload);
-    setUser(u);
-  };
-
-  const logout = async () => {
-    await apiLogout();
+  // 🔹 Déconnexion → nettoyage
+  const logout = () => {
+    localStorage.removeItem("cs_user");
+    localStorage.removeItem("cs_token");
     setUser(null);
-  };
-
-  const refreshUser = async () => {
-    const currentUser = await getCurrentUser();
-    setUser(currentUser);
+    router.push("/login");
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refreshUser }}
-    >
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-// Hook personnalisé
+// Hook pour accéder facilement au contexte
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be utilisé dans AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
