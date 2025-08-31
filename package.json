@@ -1,41 +1,24 @@
 {
-  "name": "admin-chantiersync",
-  "private": true,
+  "name": "chantiersync-app",
   "version": "0.1.0",
-  "type": "module",
-  "engines": {
-    "node": "22.x"
-  },
+  "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "cypress": "cypress open"
+    "cypress": "cypress open",
+    "lint": "next lint"
   },
   "dependencies": {
-    "@types/jsonwebtoken": "^9.0.10",
-    "axios": "^1.7.2",
-    "bcrypt": "^6.0.0",
-    "js-cookie": "^3.0.5",
-    "jsonwebtoken": "^9.0.2",
-    "lucide-react": "^0.441.0",
     "next": "14.2.32",
     "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-icons": "^5.5.0",
-    "recharts": "^2.12.7"
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
-    "@tailwindcss/typography": "^0.5.16",
-    "@types/node": "^20.14.12",
-    "@types/react": "^19.1.11",
-    "@types/react-dom": "^19.1.7",
-    "autoprefixer": "^10.4.19",
-    "cypress": "^13.9.0",
-    "postcss": "^8.4.39",
-    "tailwindcss": "^3.4.10",
-    "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.9.2"
+    "@types/react": "19.1.12",
+    "cypress": "^13.15.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.32",
+    "typescript": "^5.4.0"
   }
 }
