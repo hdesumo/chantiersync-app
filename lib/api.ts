@@ -1,14 +1,8 @@
 // lib/api.ts
-
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-/* ==========================
-   AUTH
-   ========================== */
+/* ========================== AUTH ========================== */
 
-/**
- * Inscription d’un tenant
- */
 export async function registerTenant(data: {
   companyName: string;
   contactName: string;
@@ -20,14 +14,10 @@ export async function registerTenant(data: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-
   if (!res.ok) throw new Error("Erreur lors de l'inscription");
   return res.json();
 }
 
-/**
- * Connexion utilisateur
- */
 export async function loginUser(credentials: {
   email?: string;
   password?: string;
@@ -39,33 +29,23 @@ export async function loginUser(credentials: {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
   });
-
   if (!res.ok) throw new Error("Identifiants incorrects");
-  return res.json(); // contient le token + infos user
+  return res.json();
 }
 
-/**
- * Déconnexion (supprime le cookie token côté client)
- */
 export function logoutUser() {
   document.cookie = "token=; path=/; max-age=0;";
 }
 
-/**
- * Vérifier le token côté API
- */
 export async function verifyToken(token: string) {
   const res = await fetch(`${API_URL}/auth/verify`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-
   if (!res.ok) throw new Error("Token invalide ou expiré");
   return res.json();
 }
 
-/* ==========================
-   SITES
-   ========================== */
+/* ========================== SITES ========================== */
 
 export async function getSites(token?: string) {
   const res = await fetch(`${API_URL}/sites`, {
@@ -98,8 +78,10 @@ export async function createSite(data: any, token: string) {
   return res.json();
 }
 
+/* ========================== UTILITAIRE ========================== */
+
 /**
- * URL du QR code PNG d’un site
+ * Retourne l'URL du QR code PNG pour un site
  */
 export function siteQrPngUrl(siteId: string): string {
   return `${API_URL}/sites/${siteId}/qr.png`;
