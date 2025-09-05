@@ -1,82 +1,68 @@
+// app/login/page.tsx
 "use client";
 
-import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/components/AuthProvider";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
-
-  const { login } = useAuth();
-
+  const { login, error, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-
     try {
-      await login({ email, password }); // ✅ cohérent avec Option A
-      router.push(redirectTo);
-    } catch (err: any) {
+      await login({ email, password }); // ✅ un seul argument
+      router.push("/dashboard"); // redirection après login
+    } catch (err) {
       console.error("Erreur login:", err);
-      setError(err.message || "Erreur de connexion");
-    } finally {
-      setLoading(false);
     }
-  }; // <- FIN correcte de handleSubmit
+  }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-lg shadow-md w-full max-w-sm"
+        className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md"
       >
-        <h1 className="text-2xl font-bold mb-4 text-center">Connexion</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Connexion</h1>
 
-        {error && <p className="text-red-500 mb-3">{error}</p>}
+        <input
+          type="email"
+          placeholder="Email"
+          className="w-full mb-4 px-4 py-2 border rounded-lg"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
-        <div className="mb-4">
-          <label htmlFor="email" className="block mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            className="w-full border px-3 py-2 rounded"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-
-        <div className="mb-4">
-          <label htmlFor="password" className="block mb-1">
-            Mot de passe
-          </label>
-          <input
-            id="password"
-            type="password"
-            className="w-full border px-3 py-2 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+        <input
+          type="password"
+          placeholder="Mot de passe"
+          className="w-full mb-4 px-4 py-2 border rounded-lg"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
         <button
           type="submit"
+          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
           disabled={loading}
-          className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
           {loading ? "Connexion..." : "Se connecter"}
         </button>
+
+        {error && <p className="text-red-500 text-center mt-4">{error}</p>}
+
+        <p className="text-center mt-6 text-sm">
+          Pas encore de compte ?{" "}
+          <a href="/register" className="text-blue-600 hover:underline">
+            S'inscrire
+          </a>
+        </p>
       </form>
     </div>
   );
