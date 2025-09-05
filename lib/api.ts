@@ -3,7 +3,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 /**
- * Exemple de requêtes API génériques
+ * Récupérer la liste des sites
  */
 export async function getSites() {
   const res = await fetch(`${API_URL}/sites`, { cache: "no-store" });
@@ -11,12 +11,18 @@ export async function getSites() {
   return res.json();
 }
 
+/**
+ * Récupérer un site par son ID
+ */
 export async function getSite(id: string) {
   const res = await fetch(`${API_URL}/sites/${id}`, { cache: "no-store" });
   if (!res.ok) throw new Error("Erreur lors du chargement du site");
   return res.json();
 }
 
+/**
+ * Créer un site
+ */
 export async function createSite(data: any, token: string) {
   const res = await fetch(`${API_URL}/sites`, {
     method: "POST",
@@ -31,7 +37,7 @@ export async function createSite(data: any, token: string) {
 }
 
 /**
- * ⚡ Ajout : Générer l’URL du QR code pour un site
+ * URL du QR code PNG d’un site
  */
 export function siteQrPngUrl(siteId: string): string {
   return `${API_URL}/sites/${siteId}/qr.png`;
