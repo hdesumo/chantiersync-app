@@ -1,36 +1,38 @@
-// app/public/sites/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { listSites, createSite, siteQrPngUrl } from "@/lib/api";
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import { getSites, siteQrPngUrl } from "@/lib/api";
 
 export default function PublicSitesPage() {
   const [sites, setSites] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    listSites()
-      .then((data) => setSites(data || []))
-      .catch((err) => console.error("Erreur fetch sites:", err))
-      .finally(() => setLoading(false));
+    getSites()
+      .then((data) => setSites(data))
+      .catch((err) => console.error(err));
   }, []);
 
-  if (loading) return <p>Chargement des sites...</p>;
-
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-4">Sites publics</h1>
-      {sites.length === 0 ? (
-        <p>Aucun site trouvé.</p>
-      ) : (
-        <ul className="list-disc pl-6">
-          {sites.map((s) => (
-            <li key={s.id}>
-              {s.name} – <img src={siteQrPngUrl(s.id)} alt="QR Code" className="inline w-12 h-12 ml-2" />
-            </li>
-          ))}
-        </ul>
-      )}
+    <div className="p-8">
+      <h1 className="text-2xl font-bold mb-6">Sites publics</h1>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {sites.map((site) => (
+          <div
+            key={site.id}
+            className="border p-4 rounded-lg shadow hover:shadow-lg transition"
+          >
+            <h2 className="text-lg font-semibold mb-2">{site.name}</h2>
+            <p className="text-gray-600 mb-4">{site.description}</p>
+            <Image
+              src={siteQrPngUrl(site.id)}
+              alt={`QR code du site ${site.name}`}
+              width={200}
+              height={200}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

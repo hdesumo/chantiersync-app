@@ -1,4 +1,3 @@
-// app/login/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -14,8 +13,8 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     try {
-      await login({ email, password }); // ✅ un seul argument
-      router.push("/dashboard"); // redirection après login
+      await login({ email, password });
+      router.push("/dashboard");
     } catch (err) {
       console.error("Erreur login:", err);
     }
@@ -60,7 +59,7 @@ export default function LoginPage() {
         <p className="text-center mt-6 text-sm">
           Pas encore de compte ?{" "}
           <a href="/register" className="text-blue-600 hover:underline">
-            S'inscrire
+            S&apos;inscrire
           </a>
         </p>
       </form>
