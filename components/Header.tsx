@@ -1,24 +1,26 @@
 "use client";
 
-import { useAuth } from "@/context/AuthProvider";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Header() {
-  const { role, logout } = useAuth();
+  const { user, logout } = useAuth(); // ✅ on récupère user, pas role
 
   return (
     <header className="bg-white shadow px-6 py-3 flex justify-between items-center">
-      <h1 className="font-bold text-lg">
-        Tableau de bord
-        {role && <span className="ml-2 text-sm text-gray-500">({role})</span>}
-      </h1>
-
-      <button
-        onClick={logout}
-        className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
-      >
-        Déconnexion
-      </button>
+      <h1 className="text-xl font-bold">ChantierSync</h1>
+      <div className="flex items-center space-x-4">
+        {user && (
+          <span className="text-gray-600 text-sm">
+            Connecté en tant que <strong>{user.role}</strong>
+          </span>
+        )}
+        <button
+          onClick={logout}
+          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
+        >
+          Déconnexion
+        </button>
+      </div>
     </header>
   );
 }
-
