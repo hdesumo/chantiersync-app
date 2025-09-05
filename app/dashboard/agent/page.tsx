@@ -1,21 +1,31 @@
 "use client";
 
-import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function AgentDashboard() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
 
-  if (user?.role !== "AGENT") {
-    router.push("/403");
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login");
+    }
+  }, [loading, user, router]);
+
+  if (loading) {
+    return <p>Chargement...</p>;
+  }
+
+  if (!user) {
     return null;
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold">Tableau de bord Agent</h1>
-      <p className="mt-4">Bienvenue {user.email}</p>
+      <h1 className="text-xl font-bold">Tableau de bord Agent</h1>
+      <p>Bienvenue, {user.email}</p>
     </div>
   );
 }
