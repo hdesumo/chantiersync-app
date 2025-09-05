@@ -78,11 +78,38 @@ export async function createSite(data: any, token: string) {
   return res.json();
 }
 
-/* ========================== UTILITAIRE ========================== */
+/* ========================== UTILITAIRES ========================== */
 
 /**
  * Retourne l'URL du QR code PNG pour un site
  */
 export function siteQrPngUrl(siteId: string): string {
   return `${API_URL}/sites/${siteId}/qr.png`;
+}
+
+/**
+ * Liste tous les sites (version legacy pour compatibilité)
+ */
+export async function listSites(token?: string) {
+  return getSites(token);
+}
+
+/**
+ * Requête API côté serveur (legacy pour compatibilité)
+ */
+export async function serverApiFetch(path: string, token?: string, options: RequestInit = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(`Erreur API sur ${path}`);
+  }
+
+  return res.json();
 }
