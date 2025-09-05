@@ -1,7 +1,7 @@
 // middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken"; // ✅ compatible Vercel / Next.js 14
 
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret";
 
@@ -13,6 +13,7 @@ const PROTECTED_PATHS = ["/dashboard", "/tenant", "/superadmin"];
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Vérifie si la route demandée est protégée
   if (PROTECTED_PATHS.some((path) => pathname.startsWith(path))) {
     const token = req.cookies.get("token")?.value;
 
@@ -21,6 +22,7 @@ export function middleware(req: NextRequest) {
     }
 
     try {
+      // Vérification du token avec la clé secrète
       jwt.verify(token, SESSION_SECRET);
       return NextResponse.next();
     } catch (err) {
